@@ -1,0 +1,16 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# SPA fallback for client-side routes
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Note: /api/expert/* and /api/countries need the Vite middleware
+# (npm run preview / npm run dev). Pure static hosting cannot proxy
+# the expert API or set HttpOnly session cookies.

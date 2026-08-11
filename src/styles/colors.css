@@ -1,0 +1,112 @@
+/**
+ * Design-token CSS variables (fallbacks before JS runs).
+ *
+ * ★ To rebrand a new project, edit `src/config/theme.config.ts` — not this file.
+ * `applyTheme()` overwrites these at startup from that config.
+ */
+:root {
+  /* ── Brand & surfaces ─────────────────────────────────────────── */
+  --coinzy-canvas: #f5f3f0;
+  --coinzy-surface: #ffffff;
+  --coinzy-primary: #7c3c3f;
+  --coinzy-primary-hover: #682f2f;
+  --coinzy-primary-active: #5a2929;
+  --coinzy-primary-soft: #f3e8e8;
+  --coinzy-secondary: #c2620e;
+  --coinzy-secondary-hover: #a4520b;
+  --coinzy-secondary-active: #8a4509;
+  --coinzy-secondary-soft: #fff7ed;
+  --coinzy-text: #111111;
+  --coinzy-text-muted: #6b7280;
+  --coinzy-border: #e5e2dc;
+  /** Figma Coin/Field/Background — inputs, selects, textareas */
+  --coinzy-input-bg: #f9fafb;
+  /** Figma Coin/Field/Surface — field border stroke */
+  --coinzy-input-border: #e6e9eb;
+  --coinzy-logo-bg: #1c1917;
+  --coinzy-logo-accent: #4ade80;
+  --coinzy-success-ring: #e8f5e9;
+  --coinzy-success-check: #2e7d32;
+
+  /* ── Expert panel chrome ──────────────────────────────────────── */
+  --coinzy-expert-sidebar: #823f42;
+  --coinzy-expert-sidebar-foreground: #f8f6f4;
+  --coinzy-expert-sidebar-muted: rgba(248, 246, 244, 0.65);
+  --coinzy-expert-dashboard-canvas: #f6f7f8;
+  --coinzy-expert-nav-badge: #f97316;
+  --coinzy-expert-available: #22c55e;
+  --coinzy-expert-status-active: #4ade80;
+  --coinzy-expert-status-inactive: #fbbf24;
+
+  /* ── Expert actions: green (In Progress / Continue) ───────────── */
+  --coinzy-expert-action-green: #16a34a;
+  --coinzy-expert-action-green-hover: #15803d;
+  --coinzy-expert-action-green-soft: #e8f8ef;
+  --coinzy-expert-action-green-text: #166534;
+  --coinzy-expert-action-green-ring: rgba(22, 163, 74, 0.22);
+
+  /* ── Expert actions: blue (New / View Request / Accept) ────────── */
+  --coinzy-expert-action-blue: #3b82f6;
+  --coinzy-expert-action-blue-hover: #2563eb;
+  --coinzy-expert-action-blue-soft: #eff6ff;
+  --coinzy-expert-action-blue-text: #1d4ed8;
+  --coinzy-expert-action-blue-ring: rgba(59, 130, 246, 0.25);
+
+  /* ── Expert actions: amber (Time Extended / Draft) ─────────────── */
+  --coinzy-expert-action-amber: #eab308;
+  --coinzy-expert-action-amber-hover: #ca8a04;
+  --coinzy-expert-action-amber-soft: #fef3c7;
+  --coinzy-expert-action-amber-text: #92400e;
+  --coinzy-expert-action-amber-ring: rgba(234, 179, 8, 0.45);
+
+  /* ── Expert actions: orange (Time Extended) ───────────────────── */
+  --coinzy-expert-action-orange: #c2620e;
+  --coinzy-expert-action-orange-hover: #a4520b;
+
+  /* ── Expert in-queue badge (offered / pending review) ─────────── */
+  --coinzy-expert-badge-neutral: #eef6ff;
+  --coinzy-expert-badge-neutral-text: #51a2ff;
+  --coinzy-expert-badge-neutral-ring: rgba(81, 162, 255, 0.25);
+
+  /* ── Expert history status pills ──────────────────────────────── */
+  --coinzy-expert-status-draft-bg: #f3f4f6;
+  --coinzy-expert-status-draft-text: #4b5563;
+  --coinzy-expert-status-new-bg: #fef9c3;
+  --coinzy-expert-status-new-text: #a16207;
+  --coinzy-expert-status-done-bg: #ecfdf5;
+  --coinzy-expert-status-done-text: #15803d;
+  --coinzy-expert-status-expired-bg: #fff1eb;
+  --coinzy-expert-status-expired-text: #c2410c;
+
+  /* ── Expert error / alerts ────────────────────────────────────── */
+  --coinzy-expert-error: #dc2626;
+  --coinzy-expert-error-soft: #fef2f2;
+
+  /* ── Drafts auto-save banner ──────────────────────────────────── */
+  --coinzy-expert-draft-banner: #ecfdf5;
+  --coinzy-expert-draft-banner-border: #bbf7d0;
+  --coinzy-expert-draft-banner-text: #166534;
+
+  /* Aliases kept for existing class names */
+  --coinzy-expert-queue-accent-blue: var(--coinzy-expert-action-blue);
+  --coinzy-expert-queue-accent-green: var(--coinzy-expert-action-green);
+  --coinzy-expert-draft-accent: var(--coinzy-expert-action-amber);
+
+  /* ── Button / icon size tokens (overridden by applyTheme) ─────── */
+  --btn-sm-height: 1.75rem;
+  --btn-sm-px: 1.75rem;
+  --btn-sm-radius: 0.5rem;
+  --btn-sm-font: 0.75rem;
+  --btn-md-height: 2.5rem;
+  --btn-md-px: 1rem;
+  --btn-md-radius: 0.5rem;
+  --btn-md-font: 0.875rem;
+  --btn-md-min-w: 8.5rem;
+  --btn-lg-px: 1rem;
+  --btn-lg-py: 0.75rem;
+  --btn-lg-radius: 9999px;
+  --btn-lg-font: 0.875rem;
+  --coinzy-logo-size: 40px;
+  --coinzy-logo-radius: 0.5rem;
+  --coinzy-nav-icon-size: 18px;
+}
