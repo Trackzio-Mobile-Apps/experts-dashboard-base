@@ -46,6 +46,31 @@ See `.env.example`.
 
 Edit **`src/config/theme.config.ts`** (colors, buttons, icons, brand name/logo), replace assets in `public/`, point `.env.local` at your API. Details in [docs/WEBAPP_GUIDE.md §10](./docs/WEBAPP_GUIDE.md#10-theme--white-label-new-app-in-minutes).
 
+## Deploy on Netlify
+
+1. Push this repo to GitHub (or drag-and-drop the folder in Netlify UI).
+2. In [Netlify](https://app.netlify.com) → **Add new site** → **Import an existing project**.
+3. Select the GitHub repo (`Trackzio-Mobile-Apps/spare-repo` or your fork).
+4. Build settings (from `netlify.toml`):
+   - **Build command:** `npm run build`
+   - **Publish directory:** `dist`
+   - **Functions directory:** `netlify/functions`
+5. **Site configuration → Environment variables** (all scopes):
+   - `EXPERT_API_BASE_URL` = `https://coinzy-experts-api.trackzio.com`
+   - Optional: `VITE_EXPERT_SOCKET_URL` = same URL
+6. Deploy site. `/api/expert/*` and `/api/countries` are handled by `netlify/functions/expert-api.mts`.
+7. Open the Netlify URL → `/expert/login` and sign in.
+
+CLI alternative:
+
+```bash
+npm install -g netlify-cli
+netlify login
+netlify init          # link site / create new
+netlify env:set EXPERT_API_BASE_URL https://coinzy-experts-api.trackzio.com
+netlify deploy --build --prod
+```
+
 ## Deploy on Vercel
 
 1. Push this repo to GitHub.

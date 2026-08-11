@@ -564,11 +564,13 @@ npm run build     # → dist/
 npm run preview   # local prod smoke WITH middleware
 ```
 
-**Netlify (`netlify.toml`):** publishes `dist` with SPA fallback. That is enough for static UI routes, but **authenticated `/api/expert/*`, session cookies, media proxy, and countries** require the Vite middleware (or an equivalent Node/Edge proxy in front of the Expert API).
+**Netlify:** `netlify.toml` publishes `dist` with SPA fallback. `/api/expert/*` and `/api/countries` are handled by `netlify/functions/expert-api.mts` (same backend proxy + HttpOnly session cookie as local Vite middleware). Set `EXPERT_API_BASE_URL` in the Netlify UI.
+
+**Vercel:** `api/*` serverless routes + `vercel.json` SPA rewrite. Set the same env var.
 
 Production checklist:
 
-1. Set `EXPERT_API_BASE_URL` (and optional `VITE_EXPERT_SOCKET_URL`) on the host that runs middleware.
+1. Set `EXPERT_API_BASE_URL` (and optional `VITE_EXPERT_SOCKET_URL`) on Netlify/Vercel.
 2. Ensure cookie `Secure` in production (`NODE_ENV=production`).
 3. Confirm Socket.IO CORS / origin allows the webapp host.
 4. Re-test login → queue → accept → draft → submit → PDF after deploy.

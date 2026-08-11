@@ -1,16 +1,17 @@
 [build]
   command = "npm run build"
   publish = "dist"
+  functions = "netlify/functions"
 
 [build.environment]
   NODE_VERSION = "20"
 
-# SPA fallback for client-side routes
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+# SPA fallback — Netlify Functions with `config.path` handle /api/* first.
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
-
-# Note: /api/expert/* and /api/countries need the Vite middleware
-# (npm run preview / npm run dev). Pure static hosting cannot proxy
-# the expert API or set HttpOnly session cookies.
