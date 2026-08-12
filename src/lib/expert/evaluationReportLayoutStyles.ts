@@ -1,3 +1,4 @@
+import { themeConfig } from "@/config";
 import { EVALUATION_REPORT_TOKENS } from "@/lib/expert/evaluationReportTokens";
 
 const t = EVALUATION_REPORT_TOKENS;
@@ -5,9 +6,8 @@ const c = t.colors;
 const p = t.pdf;
 
 export const EVALUATION_REPORT_INTER_FONT_URL =
-  "https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap";
+  themeConfig.fonts.googleFontsUrl;
 
-/** Load Inter for consistent modal + PDF typography. */
 export function evaluationReportFontFaceCss(): string {
   return `@import url('${EVALUATION_REPORT_INTER_FONT_URL}');`;
 }

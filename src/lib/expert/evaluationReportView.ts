@@ -18,13 +18,13 @@ import type {
 } from "@/lib/expert/types";
 
 export const EVALUATION_REPORT_BRAND = themeConfig.brand.reportName;
-export const EVALUATION_REPORT_SUBTITLE = "Expert Coin Evaluation";
-export const EVALUATION_REPORT_TITLE = "Evaluation Report";
+export const EVALUATION_REPORT_SUBTITLE = themeConfig.report.subtitle;
+export const EVALUATION_REPORT_TITLE = themeConfig.report.title;
 
 /** v1: compact coin + summary hero. v2: expert profile + coin cards. */
 export type EvaluationReportLayoutVersion = "v1" | "v2";
 export const EVALUATION_REPORT_LAYOUT_VERSION: EvaluationReportLayoutVersion =
-  "v1";
+  themeConfig.report.layoutVersion;
 
 export type EvaluationReportFieldRow = {
   label: string;

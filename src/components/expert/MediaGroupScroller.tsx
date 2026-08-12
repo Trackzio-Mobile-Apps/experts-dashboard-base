@@ -41,7 +41,6 @@ function MediaThumbnail({
       className={`group relative overflow-hidden rounded-lg border border-border/80 bg-input-bg text-left shadow-sm outline-none transition-[box-shadow,ring-color] focus-visible:ring-2 focus-visible:ring-primary/30 ${className}`}
     >
       {item.kind === "image" ? (
-        // eslint-disable-next-line @next/next/no-img-element
         <img
           src={item.src}
           alt={item.alt}
@@ -50,7 +49,6 @@ function MediaThumbnail({
       ) : (
         <>
           {item.poster ? (
-            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={item.poster}
               alt={item.alt}

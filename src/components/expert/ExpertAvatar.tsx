@@ -55,7 +55,6 @@ export function ExpertAvatar({
 
   if (photoUrl && !imageFailed) {
     return (
-      // eslint-disable-next-line @next/next/no-img-element
       <img
         src={photoUrl}
         alt={name ? `${name} profile photo` : "Profile photo"}

@@ -60,7 +60,6 @@ export function ExpertUnavailabilityConfirmModal({
         </button>
 
         <div className="mx-auto flex h-[5.5rem] w-[5.5rem] items-center justify-center">
-          {/* eslint-disable-next-line @next/next/no-img-element -- static modal asset from /public */}
           <img
             src="/confirm-unavailability-warning.png"
             alt=""

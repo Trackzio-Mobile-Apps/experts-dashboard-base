@@ -58,7 +58,6 @@ export function QueueCoinPreview({
 
   if (visibleUrls.length === 1) {
     return (
-      // eslint-disable-next-line @next/next/no-img-element -- remote coin media URLs
       <img
         src={visibleUrls[0]}
         alt={coinName}
@@ -73,7 +72,6 @@ export function QueueCoinPreview({
       {visibleUrls.map((src) => {
         const sourceIndex = urls.indexOf(src);
         return (
-          // eslint-disable-next-line @next/next/no-img-element -- remote coin media URLs
           <img
             key={`${sourceIndex}-${src}`}
             src={src}

@@ -1,6 +1,3 @@
-/**
- * Public theme API — rebrand by editing `theme.config.ts` only.
- */
 export { themeConfig } from "@/config/theme.config";
 export type {
   ThemeConfig,

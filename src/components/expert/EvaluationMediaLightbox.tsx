@@ -106,7 +106,6 @@ export function EvaluationMediaLightbox({
             style={{ transform: `scale(${zoom})` }}
           >
             {current.kind === "image" ? (
-              // eslint-disable-next-line @next/next/no-img-element -- remote media URLs
               <img
                 src={current.src}
                 alt={current.alt}
@@ -154,7 +153,6 @@ export function EvaluationMediaLightbox({
               }`}
             >
               {item.kind === "image" ? (
-                // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={item.src}
                   alt=""
@@ -163,7 +161,6 @@ export function EvaluationMediaLightbox({
               ) : (
                 <>
                   {item.poster ? (
-                    // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={item.poster}
                       alt=""

@@ -1,29 +1,21 @@
 /**
- * ═══════════════════════════════════════════════════════════════════════════
- * THEME CONFIG — edit THIS file to rebrand / restyle the app for a new project
- * ═══════════════════════════════════════════════════════════════════════════
+ * Single place to rebrand / restyle this app for a new product.
  *
- * Change in one place:
- *   • brand name + logo
- *   • primary / secondary (and related) colors
- *   • button sizes, radius, and colors
- *   • icon sizes and asset paths
+ * Edit here:
+ *   brand, fonts, colors, buttons, icons, report copy
  *
- * Applied at startup via `applyTheme()` in `main.tsx`.
- * Tailwind classes like `bg-primary` / `bg-secondary` read these CSS variables.
+ * Applied at startup by `applyTheme()` in `main.tsx`.
+ * Data models (API fields) live in `src/lib/expert/types.ts` + mappers —
+ * change those when the backend contract changes.
  */
 
 export const themeConfig = {
-  /* ── Brand ─────────────────────────────────────────────────────────────── */
   brand: {
-    /** Wordmark next to the logo */
     name: "Coinzy",
-    /** Document / browser tab title prefix */
     appTitle: "Coinzy Expert Portal",
-    /** Path under /public — replace this file to rebrand */
     logoSrc: "/coinzy-logo.png",
     logoAlt: "Coinzy",
-    /** Evaluation / CERT report header name */
+    faviconSrc: "/favicon.png",
     reportName: "Coinzy AI",
     portalLabels: {
       expert: "Expert Portal",
@@ -32,18 +24,26 @@ export const themeConfig = {
     panelSubtitle: "Expert panel",
   },
 
-  /* ── Colors (hex) ──────────────────────────────────────────────────────── */
+  fonts: {
+    /** CSS font-family for body UI */
+    sans: '"Inter", ui-sans-serif, system-ui, sans-serif',
+    /** Optional display font (reports / headings) */
+    display: '"Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif',
+    mono: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+    /** Google Fonts stylesheet — change family query when swapping fonts */
+    googleFontsUrl:
+      "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap",
+  },
+
   colors: {
     canvas: "#f5f3f0",
     surface: "#ffffff",
 
-    /** Main brand — CTAs, links, accents */
     primary: "#7c3c3f",
     primaryHover: "#682f2f",
     primaryActive: "#5a2929",
     primarySoft: "#f3e8e8",
 
-    /** Second brand color — secondary buttons, accents */
     secondary: "#c2620e",
     secondaryHover: "#a4520b",
     secondaryActive: "#8a4509",
@@ -60,7 +60,6 @@ export const themeConfig = {
     successRing: "#e8f5e9",
     successCheck: "#2e7d32",
 
-    /* Expert panel */
     expertSidebar: "#823f42",
     expertSidebarForeground: "#f8f6f4",
     expertSidebarMuted: "rgba(248, 246, 244, 0.65)",
@@ -112,15 +111,10 @@ export const themeConfig = {
     expertDraftBannerText: "#166534",
   },
 
-  /* ── Buttons ───────────────────────────────────────────────────────────── */
   buttons: {
-    /**
-     * Size presets used by `getButtonClass()`.
-     * Edit height / padding / font / radius here — all shared buttons follow.
-     */
     sizes: {
       sm: {
-        height: "1.75rem", // 28px — table row actions
+        height: "1.75rem",
         paddingX: "1.75rem",
         fontSize: "0.75rem",
         fontWeight: "600",
@@ -128,7 +122,7 @@ export const themeConfig = {
         minWidth: "",
       },
       md: {
-        height: "2.5rem", // 40px — queue / draft CTAs
+        height: "2.5rem",
         paddingX: "1rem",
         fontSize: "0.875rem",
         fontWeight: "600",
@@ -141,15 +135,10 @@ export const themeConfig = {
         paddingY: "0.75rem",
         fontSize: "0.875rem",
         fontWeight: "600",
-        radius: "9999px", // pill — auth CTAs
+        radius: "9999px",
         minWidth: "",
       },
     },
-
-    /**
-     * Color variants. Uses Tailwind token names mapped in globals.css
-     * (`primary`, `secondary`, `expert-action-green`, …).
-     */
     variants: {
       primary: {
         bg: "bg-primary",
@@ -196,20 +185,23 @@ export const themeConfig = {
     },
   },
 
-  /* ── Icons ─────────────────────────────────────────────────────────────── */
   icons: {
-    /** Sidebar / nav icons */
     nav: {
       sizePx: 18,
       strokeWidth: 1.75,
-      /** Raster asset for queue nav (under /public). Replace to rebrand. */
       queueSrc: "/expert-nav-queue-icon.png",
     },
-    /** Brand mark next to wordmark */
     logo: {
       sizePx: 40,
       radius: "0.5rem",
     },
+  },
+
+  /** Evaluation / PDF report copy (brand colors still come from `colors`) */
+  report: {
+    subtitle: "Expert Coin Evaluation",
+    title: "Evaluation Report",
+    layoutVersion: "v1" as "v1" | "v2",
   },
 } as const;
 

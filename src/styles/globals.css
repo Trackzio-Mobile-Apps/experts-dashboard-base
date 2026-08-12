@@ -80,13 +80,17 @@
 }
 
 :root {
-  --font-geist-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-geist-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  --font-plus-jakarta: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  /* Defaults — overridden by applyTheme() from theme.config.ts */
+  --font-app-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-app-display: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-app-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --font-geist-sans: var(--font-app-sans);
+  --font-geist-mono: var(--font-app-mono);
+  --font-plus-jakarta: var(--font-app-display);
 }
 
 body {
   background: var(--coinzy-canvas);
   color: var(--coinzy-text);
-  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-app-sans);
 }

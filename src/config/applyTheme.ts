@@ -1,9 +1,5 @@
 import { themeConfig } from "@/config/theme.config";
 
-/**
- * Maps themeConfig.colors → CSS custom properties consumed by
- * `src/styles/colors.css` / Tailwind `@theme` in `globals.css`.
- */
 const COLOR_CSS_VARS: Record<keyof typeof themeConfig.colors, string> = {
   canvas: "--coinzy-canvas",
   surface: "--coinzy-surface",
@@ -67,16 +63,48 @@ const COLOR_CSS_VARS: Record<keyof typeof themeConfig.colors, string> = {
   expertDraftBannerText: "--coinzy-expert-draft-banner-text",
 };
 
+function applyFonts(config: typeof themeConfig): void {
+  const { fonts, brand } = config;
+  const root = document.documentElement;
+
+  root.style.setProperty("--font-app-sans", fonts.sans);
+  root.style.setProperty("--font-app-display", fonts.display);
+  root.style.setProperty("--font-app-mono", fonts.mono);
+  // Back-compat aliases used by globals.css
+  root.style.setProperty("--font-geist-sans", fonts.sans);
+  root.style.setProperty("--font-plus-jakarta", fonts.display);
+  root.style.setProperty("--font-geist-mono", fonts.mono);
+
+  let link = document.getElementById("app-theme-fonts") as HTMLLinkElement | null;
+  if (!link) {
+    link = document.createElement("link");
+    link.id = "app-theme-fonts";
+    link.rel = "stylesheet";
+    document.head.appendChild(link);
+  }
+  if (fonts.googleFontsUrl) {
+    link.href = fonts.googleFontsUrl;
+  }
+
+  const favicon = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
+  if (favicon && brand.faviconSrc) {
+    favicon.href = brand.faviconSrc;
+  }
+
+  if (brand.appTitle) {
+    document.title = brand.appTitle;
+  }
+}
+
 /**
- * Push `themeConfig` into `:root` CSS variables so Tailwind token classes
- * (`bg-primary`, `text-secondary`, …) pick up the values from one file.
+ * Apply `themeConfig` to CSS variables (and fonts / title / favicon).
  * Call once before React mounts.
  */
 export function applyTheme(
   config: typeof themeConfig = themeConfig,
   target: HTMLElement = document.documentElement,
 ): void {
-  const { colors, brand, icons, buttons } = config;
+  const { colors, icons, buttons } = config;
 
   for (const [key, cssVar] of Object.entries(COLOR_CSS_VARS)) {
     const value = colors[key as keyof typeof colors];
@@ -102,17 +130,16 @@ export function applyTheme(
     target.style.setProperty("--btn-md-min-w", buttons.sizes.md.minWidth);
   }
 
-  target.style.setProperty("--btn-lg-px", buttons.sizes.lg.paddingX);
+  const lg = buttons.sizes.lg;
+  target.style.setProperty("--btn-lg-px", lg.paddingX);
   target.style.setProperty(
     "--btn-lg-py",
-    "paddingY" in buttons.sizes.lg
-      ? buttons.sizes.lg.paddingY
-      : "0.75rem",
+    "paddingY" in lg ? lg.paddingY : "0.75rem",
   );
-  target.style.setProperty("--btn-lg-radius", buttons.sizes.lg.radius);
-  target.style.setProperty("--btn-lg-font", buttons.sizes.lg.fontSize);
+  target.style.setProperty("--btn-lg-radius", lg.radius);
+  target.style.setProperty("--btn-lg-font", lg.fontSize);
 
-  if (typeof document !== "undefined" && brand.appTitle) {
-    document.title = brand.appTitle;
+  if (typeof document !== "undefined") {
+    applyFonts(config);
   }
 }

@@ -4,10 +4,7 @@ import {
   type ButtonVariant,
 } from "@/config/theme.config";
 
-/**
- * Size shells use CSS variables set by `applyTheme()` from theme.config.
- * Keep these as full string literals so Tailwind v4 can scan them.
- */
+/** Size shells use CSS vars from applyTheme() — keep as full string literals for Tailwind. */
 const SIZE_CLASS: Record<ButtonSize, string> = {
   sm: "h-[var(--btn-sm-height)] px-[var(--btn-sm-px)] text-[length:var(--btn-sm-font)] rounded-[var(--btn-sm-radius)] font-semibold",
   md: "h-[var(--btn-md-height)] min-w-[var(--btn-md-min-w,8.5rem)] px-[var(--btn-md-px)] text-[length:var(--btn-md-font)] rounded-[var(--btn-md-radius)] font-semibold",
@@ -25,21 +22,11 @@ function variantClasses(variant: ButtonVariant): string {
 export type GetButtonClassOptions = {
   variant?: ButtonVariant;
   size?: ButtonSize;
-  /** Omit fill colors — useful when a row adds its own status color. */
   colorless?: boolean;
-  /** Stretch to full width (auth CTAs). */
   fullWidth?: boolean;
   className?: string;
 };
 
-/**
- * Build button className from `themeConfig.buttons`.
- *
- * @example
- *   getButtonClass({ variant: "primary", size: "lg", fullWidth: true })
- *   getButtonClass({ variant: "outline", size: "sm" })
- *   getButtonClass({ variant: "secondary", size: "md" })
- */
 export function getButtonClass({
   variant = "primary",
   size = "md",
@@ -58,32 +45,27 @@ export function getButtonClass({
     .join(" ");
 }
 
-/** Auth / login primary CTA (pill, full width). */
 export const primaryButtonClass = getButtonClass({
   variant: "primary",
   size: "lg",
   fullWidth: true,
 });
 
-/** Compact table actions (history Evaluate). */
 export const solidActionButtonClass = getButtonClass({
   variant: "primary",
   size: "sm",
 });
 
-/** Compact outline table actions. */
 export const outlineActionButtonClass = getButtonClass({
   variant: "outline",
   size: "sm",
 });
 
-/** Queue / draft CTA shell — pair with a status color class. */
 export const queuePrimaryButtonClass = getButtonClass({
   size: "md",
   colorless: true,
 });
 
-/** Draft continue CTA shell (slightly wider padding via className override). */
 export const draftContinueButtonClass = getButtonClass({
   size: "md",
   colorless: true,

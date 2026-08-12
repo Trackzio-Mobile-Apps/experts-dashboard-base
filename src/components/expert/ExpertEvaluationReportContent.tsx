@@ -236,7 +236,6 @@ function CoinGalleryItem({
       }}
     >
       {src ? (
-        // eslint-disable-next-line @next/next/no-img-element -- user-uploaded remote media URL
         <img src={src} alt={item.alt} loading="lazy" />
       ) : (
         <span className="eval-report-coin-gallery-fallback">Video</span>
@@ -628,7 +627,6 @@ export function ExpertEvaluationReportContent({
 
   return (
     <>
-      {/* eslint-disable-next-line @next/next/no-page-custom-font -- report preview + PDF must match Inter */}
       <link rel="stylesheet" href={EVALUATION_REPORT_INTER_FONT_URL} />
       <style
         dangerouslySetInnerHTML={{

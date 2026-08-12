@@ -35,7 +35,6 @@ export function ExpertDeadlineExceededModal({
     >
       <div className="relative w-full max-w-md rounded-3xl bg-surface px-6 pb-8 pt-6 text-center shadow-2xl sm:px-8">
         <div className="mx-auto flex h-[5.5rem] w-[5.5rem] items-center justify-center">
-          {/* eslint-disable-next-line @next/next/no-img-element -- static modal asset from /public */}
           <img
             src="/deadline-exceeded-warning.png"
             alt=""

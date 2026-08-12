@@ -1,8 +1,6 @@
 /**
- * Design-token CSS variables (fallbacks before JS runs).
- *
- * ★ To rebrand a new project, edit `src/config/theme.config.ts` — not this file.
- * `applyTheme()` overwrites these at startup from that config.
+ * CSS variable fallbacks (before JS).
+ * Rebrand in `src/config/theme.config.ts` — applyTheme() overwrites these.
  */
 :root {
   /* ── Brand & surfaces ─────────────────────────────────────────── */

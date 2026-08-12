@@ -1,3 +1,9 @@
+/**
+ * Domain models for the expert API and UI.
+ * Update these (+ mappers / evaluationForm) when backend fields change.
+ * Visual branding stays in `src/config/theme.config.ts`.
+ */
+
 export type ExpertStats = {
   activeCases: number;
   newRequests: number;

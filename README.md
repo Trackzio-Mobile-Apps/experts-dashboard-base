@@ -1,82 +1,62 @@
-# Coinzy Expert Webapp (Vite + React)
+# Expert Webapp (Vite + React)
 
-Expert panel web app for Coinzy. This folder is a **Vite** build of the expert panel (not Next.js).
-
-> Full documentation (tech stack, every flow, edge cases, test cases, white-label / new app, model-change playbook): **[docs/WEBAPP_GUIDE.md](./docs/WEBAPP_GUIDE.md)**
-
-## Stack
-
-| Layer | Tool |
-| --- | --- |
-| Bundler / dev server | **Vite 7** |
-| UI | React 19 + React Router 7 + Tailwind CSS 4 |
-| Theme / white-label | `src/config/theme.config.ts` |
-| API proxy / session | Vite middleware (`server/expertApiMiddleware.ts`) |
-| Unit tests | Vitest |
+Expert panel SPA. Stack: Vite 7, React 19, React Router 7, Tailwind CSS 4.
 
 ## Setup
 
 ```bash
-cd coinzy-expert-webapp-next-vite
 cp .env.example .env.local
 npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Open http://localhost:3000
 
-## Scripts
-
-```bash
-npm run dev       # Vite dev server + API middleware
-npm run build     # production build → dist/
-npm run preview   # serve dist with API middleware
-npm run start     # alias for preview
-npm test          # Vitest unit tests
-```
+| Script | Command |
+| --- | --- |
+| Dev | `npm run dev` |
+| Build | `npm run build` |
+| Preview | `npm run preview` |
+| Test | `npm test` |
 
 ## Environment
 
-See `.env.example`.
+`.env.local`:
 
-- `EXPERT_API_BASE_URL` — server middleware proxy target
-- `VITE_EXPERT_API_BASE_URL` / `VITE_EXPERT_SOCKET_URL` — optional browser-visible overrides
-
-## Rebrand / new app
-
-Edit **`src/config/theme.config.ts`** (colors, buttons, icons, brand name/logo), replace assets in `public/`, point `.env.local` at your API. Details in [docs/WEBAPP_GUIDE.md §10](./docs/WEBAPP_GUIDE.md#10-theme--white-label-new-app-in-minutes).
-
-## Deploy on Netlify
-
-1. Push this repo to GitHub (or drag-and-drop the folder in Netlify UI).
-2. In [Netlify](https://app.netlify.com) → **Add new site** → **Import an existing project**.
-3. Select the GitHub repo (`Trackzio-Mobile-Apps/spare-repo` or your fork).
-4. Build settings (from `netlify.toml`):
-   - **Build command:** `npm run build`
-   - **Publish directory:** `dist`
-   - **Functions directory:** `netlify/functions`
-5. **Site configuration → Environment variables** (all scopes):
-   - `EXPERT_API_BASE_URL` = `https://coinzy-experts-api.trackzio.com`
-   - Optional: `VITE_EXPERT_SOCKET_URL` = same URL
-6. Deploy site. `/api/expert/*` and `/api/countries` are handled by `netlify/functions/expert-api.mts`.
-7. Open the Netlify URL → `/expert/login` and sign in.
-
-CLI alternative:
-
-```bash
-npm install -g netlify-cli
-netlify login
-netlify init          # link site / create new
-netlify env:set EXPERT_API_BASE_URL https://coinzy-experts-api.trackzio.com
-netlify deploy --build --prod
+```
+EXPERT_API_BASE_URL=https://coinzy-experts-api.trackzio.com
 ```
 
-## Deploy on Vercel
+Optional: `VITE_EXPERT_SOCKET_URL`
 
-1. Push this repo to GitHub.
-2. In [Vercel](https://vercel.com) → **Add New Project** → import the repo.
-3. Framework preset: **Vite** (or leave auto). Build: `npm run build`, Output: `dist`.
-4. Set environment variable (Production + Preview):
-   - `EXPERT_API_BASE_URL` = `https://coinzy-experts-api.trackzio.com`
-   - Optional: `VITE_EXPERT_SOCKET_URL` = same URL
-5. Deploy. SPA routes use `vercel.json` rewrites; `/api/expert/*` and `/api/countries` are serverless functions under `api/`.
+## New product / rebrand
+
+Edit **one file**: [`src/config/theme.config.ts`](src/config/theme.config.ts)
+
+| Change | Section |
+| --- | --- |
+| Name, logo, titles | `brand`, `report` |
+| Fonts | `fonts` |
+| Primary / secondary colors | `colors` |
+| Button size & variants | `buttons` |
+| Icon size / assets | `icons` |
+
+Replace assets under `public/` (logo, favicon, nav icons).
+
+### Domain models (API shapes)
+
+When the backend or product fields change, update:
+
+| Area | File |
+| --- | --- |
+| API / UI types | `src/lib/expert/types.ts` |
+| Evaluation form fields | `src/lib/expert/evaluationForm.ts` |
+| Form ↔ report mapping | `src/lib/expert/reportContentFields.ts` |
+| Queue / drafts / history mapping | `src/lib/expert/requestMappers.ts` |
+
+UI branding stays in `theme.config.ts`; data contracts stay in `types.ts` + mappers.
+
+## Deploy
+
+- **Netlify** — `netlify.toml` + `netlify/functions/` (set `EXPERT_API_BASE_URL`)
+- **Vercel** — `vercel.json` + `api/` (set `EXPERT_API_BASE_URL`)
