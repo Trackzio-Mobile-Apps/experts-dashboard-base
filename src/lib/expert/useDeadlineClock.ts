@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useState } from "react";
 
 /** Ticks on an interval so deadline labels update while list pages stay open. */

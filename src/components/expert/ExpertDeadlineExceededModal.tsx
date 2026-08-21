@@ -1,5 +1,3 @@
-"use client";
-
 import { EXPIRED_REQUEST_DETAIL_MESSAGE } from "@/lib/expert/expiredRequestNotifications";
 import { useEffect } from "react";
 

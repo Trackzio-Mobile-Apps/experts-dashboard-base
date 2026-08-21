@@ -1,8 +1,14 @@
 /// <reference types="vite/client" />
 
 interface ImportMetaEnv {
-  readonly VITE_EXPERT_API_BASE_URL?: string;
-  readonly VITE_EXPERT_SOCKET_URL?: string;
+  readonly APP_NAME?: string;
+  readonly APP_TITLE?: string;
+  readonly APP_SLUG?: string;
+  readonly APP_LOGO_URL?: string;
+  readonly APP_FAVICON_URL?: string;
+  readonly APP_REPORT_NAME?: string;
+  readonly API_BASE_URL?: string;
+  readonly SOCKET_URL?: string;
 }
 
 interface ImportMeta {

@@ -4,7 +4,7 @@
  */
 import { themeConfig } from "@/config/theme.config";
 
-export const coinzyColors = {
+export const brandColors = {
   canvas: themeConfig.colors.canvas,
   surface: themeConfig.colors.surface,
   primary: themeConfig.colors.primary,

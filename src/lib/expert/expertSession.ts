@@ -1,7 +1,8 @@
+import { STORAGE_KEYS } from "@/config/appEnv";
 import type { ExpertProfile } from "@/lib/expert/types";
 import { normalizeExpertProfile } from "@/lib/expert/profileService";
 
-const EXPERT_PROFILE_STORAGE_KEY = "coinzy_expert_profile";
+const EXPERT_PROFILE_STORAGE_KEY = STORAGE_KEYS.profile;
 
 let memoryProfile: ExpertProfile | null = null;
 

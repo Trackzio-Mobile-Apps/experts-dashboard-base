@@ -14,14 +14,14 @@ function Mark() {
       alt={brand.logoAlt}
       width={icons.logo.sizePx}
       height={icons.logo.sizePx}
-      className="h-[var(--coinzy-logo-size)] w-[var(--coinzy-logo-size)] rounded-[var(--coinzy-logo-radius)] bg-black object-cover shadow-sm ring-1 ring-black/10"
+      className="h-[var(--brand-logo-size)] w-[var(--brand-logo-size)] rounded-[var(--brand-logo-radius)] bg-black object-cover shadow-sm ring-1 ring-black/10"
     />
   );
 }
 
 /**
  * Brand lockup: mark + name + portal line.
- * Edit name / logo in `src/config/theme.config.ts`.
+ * Override name / logo with `APP_NAME` and `APP_LOGO_URL`.
  */
 export function Logo({ className = "", portal = "expert" }: LogoProps) {
   const { brand } = themeConfig;

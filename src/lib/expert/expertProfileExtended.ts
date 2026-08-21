@@ -1,3 +1,4 @@
+import { STORAGE_KEYS } from "@/config/appEnv";
 import type { BackendExpertReview } from "@/lib/expert/types";
 
 export type ExpertEarningsSummary = {
@@ -39,7 +40,7 @@ export type ExpertReviewsResult = {
   reviews: ExpertReview[];
 };
 
-const STORAGE_PREFIX = "coinzy_expert_extended_profile_";
+const STORAGE_PREFIX = STORAGE_KEYS.extendedProfilePrefix;
 
 export const EXPERTISE_OPTIONS = [
   "Ancient Coins",

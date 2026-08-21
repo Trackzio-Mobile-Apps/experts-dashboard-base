@@ -6,6 +6,7 @@ export type {
 } from "@/config/theme.config";
 
 export { applyTheme } from "@/config/applyTheme";
+export { appEnv, getAppSlug, STORAGE_KEYS } from "@/config/appEnv";
 
 export {
   getButtonClass,

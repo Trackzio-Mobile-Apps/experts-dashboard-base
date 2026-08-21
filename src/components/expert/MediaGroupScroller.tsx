@@ -1,5 +1,3 @@
-"use client";
-
 import type { RequestMediaItem } from "@/lib/expert/types";
 import { useCallback, useEffect, useRef, useState } from "react";
 

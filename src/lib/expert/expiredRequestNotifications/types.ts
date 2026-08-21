@@ -1,3 +1,5 @@
+import { getAppSlug } from "@/config/appEnv";
+
 /** Persisted expired-request notification (frontend or future API). */
 export type ExpiredRequestNotification = {
   requestId: string;
@@ -24,10 +26,7 @@ export interface ExpiredRequestNotificationStore {
 
 export const EXPIRED_REQUEST_NOTIFICATION_LIMIT = 3;
 
-export const EXPIRED_REQUEST_NOTIFICATION_KEY_PREFIX =
-  "expert:expired-request-notifications";
-
 export function expiredRequestNotificationStorageKey(expertId: string): string {
   const id = expertId.trim();
-  return `${EXPIRED_REQUEST_NOTIFICATION_KEY_PREFIX}:${id}:v1`;
+  return `${getAppSlug()}.expert.expiredRequestNotifications:${id}:v1`;
 }

@@ -1,5 +1,3 @@
-"use client";
-
 import { ExpertHistoryPageBody } from "@/components/expert/ExpertHistoryPageBody";
 import { HISTORY_PAGE_SIZE } from "@/lib/expert/constants";
 import {

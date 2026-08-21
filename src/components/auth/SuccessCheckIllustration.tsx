@@ -24,7 +24,7 @@ export function SuccessCheckIllustration({
       >
         <path
           d="M9 18.5 14.5 24 27 11.5"
-          stroke="var(--coinzy-success-check)"
+          stroke="var(--brand-success-check)"
           strokeWidth="3"
           strokeLinecap="round"
           strokeLinejoin="round"

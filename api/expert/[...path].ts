@@ -1,7 +1,8 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import {
-  EXPERT_JWT_COOKIE,
-  getBackendBaseUrl,
+  API_UNAVAILABLE_MESSAGE,
+  getApiBaseUrl,
+  getJwtCookieName,
   parseCookies,
 } from "../_lib/expertBackend";
 
@@ -19,9 +20,9 @@ export default async function handler(
   const method = (req.method ?? "GET").toUpperCase();
   const path = pathFromQuery(req.query);
   const cookies = parseCookies(req.headers.cookie);
-  const token = cookies[EXPERT_JWT_COOKIE];
+  const token = cookies[getJwtCookieName()];
 
-  const target = new URL(`/${path}`, getBackendBaseUrl());
+  const target = new URL(`/${path}`, getApiBaseUrl());
   const search = new URLSearchParams();
   for (const [key, value] of Object.entries(req.query)) {
     if (key === "path") continue;
@@ -76,8 +77,7 @@ export default async function handler(
   } catch {
     return res.status(502).json({
       error: true,
-      message:
-        "Unable to reach the expert API. Check EXPERT_API_BASE_URL and backend availability.",
+      message: API_UNAVAILABLE_MESSAGE,
       data: null,
     });
   }

@@ -1,5 +1,3 @@
-"use client";
-
 import { ExpertEvaluationReportContent } from "@/components/expert/ExpertEvaluationReportContent";
 import { ExpertReportModalSkeleton } from "@/components/expert/ExpertSkeleton";
 import {

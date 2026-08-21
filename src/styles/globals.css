@@ -2,78 +2,78 @@
 @import "tailwindcss";
 
 @theme inline {
-  --color-canvas: var(--coinzy-canvas);
-  --color-surface: var(--coinzy-surface);
-  --color-primary: var(--coinzy-primary);
-  --color-primary-hover: var(--coinzy-primary-hover);
-  --color-primary-active: var(--coinzy-primary-active);
-  --color-primary-soft: var(--coinzy-primary-soft);
-  --color-secondary: var(--coinzy-secondary);
-  --color-secondary-hover: var(--coinzy-secondary-hover);
-  --color-secondary-active: var(--coinzy-secondary-active);
-  --color-secondary-soft: var(--coinzy-secondary-soft);
-  --color-text: var(--coinzy-text);
-  --color-text-muted: var(--coinzy-text-muted);
-  --color-border: var(--coinzy-border);
-  --color-input-bg: var(--coinzy-input-bg);
-  --color-input-border: var(--coinzy-input-border);
-  --color-logo-bg: var(--coinzy-logo-bg);
-  --color-logo-accent: var(--coinzy-logo-accent);
-  --color-success-ring: var(--coinzy-success-ring);
-  --color-success-check: var(--coinzy-success-check);
+  --color-canvas: var(--brand-canvas);
+  --color-surface: var(--brand-surface);
+  --color-primary: var(--brand-primary);
+  --color-primary-hover: var(--brand-primary-hover);
+  --color-primary-active: var(--brand-primary-active);
+  --color-primary-soft: var(--brand-primary-soft);
+  --color-secondary: var(--brand-secondary);
+  --color-secondary-hover: var(--brand-secondary-hover);
+  --color-secondary-active: var(--brand-secondary-active);
+  --color-secondary-soft: var(--brand-secondary-soft);
+  --color-text: var(--brand-text);
+  --color-text-muted: var(--brand-text-muted);
+  --color-border: var(--brand-border);
+  --color-input-bg: var(--brand-input-bg);
+  --color-input-border: var(--brand-input-border);
+  --color-logo-bg: var(--brand-logo-bg);
+  --color-logo-accent: var(--brand-logo-accent);
+  --color-success-ring: var(--brand-success-ring);
+  --color-success-check: var(--brand-success-check);
 
-  --color-expert-sidebar: var(--coinzy-expert-sidebar);
-  --color-expert-sidebar-foreground: var(--coinzy-expert-sidebar-foreground);
-  --color-expert-sidebar-muted: var(--coinzy-expert-sidebar-muted);
-  --color-expert-dashboard-canvas: var(--coinzy-expert-dashboard-canvas);
-  --color-expert-nav-badge: var(--coinzy-expert-nav-badge);
-  --color-expert-available: var(--coinzy-expert-available);
-  --color-expert-status-active: var(--coinzy-expert-status-active);
-  --color-expert-status-inactive: var(--coinzy-expert-status-inactive);
+  --color-expert-sidebar: var(--brand-expert-sidebar);
+  --color-expert-sidebar-foreground: var(--brand-expert-sidebar-foreground);
+  --color-expert-sidebar-muted: var(--brand-expert-sidebar-muted);
+  --color-expert-dashboard-canvas: var(--brand-expert-dashboard-canvas);
+  --color-expert-nav-badge: var(--brand-expert-nav-badge);
+  --color-expert-available: var(--brand-expert-available);
+  --color-expert-status-active: var(--brand-expert-status-active);
+  --color-expert-status-inactive: var(--brand-expert-status-inactive);
 
-  --color-expert-action-green: var(--coinzy-expert-action-green);
-  --color-expert-action-green-hover: var(--coinzy-expert-action-green-hover);
-  --color-expert-action-green-soft: var(--coinzy-expert-action-green-soft);
-  --color-expert-action-green-text: var(--coinzy-expert-action-green-text);
-  --color-expert-action-green-ring: var(--coinzy-expert-action-green-ring);
+  --color-expert-action-green: var(--brand-expert-action-green);
+  --color-expert-action-green-hover: var(--brand-expert-action-green-hover);
+  --color-expert-action-green-soft: var(--brand-expert-action-green-soft);
+  --color-expert-action-green-text: var(--brand-expert-action-green-text);
+  --color-expert-action-green-ring: var(--brand-expert-action-green-ring);
 
-  --color-expert-action-blue: var(--coinzy-expert-action-blue);
-  --color-expert-action-blue-hover: var(--coinzy-expert-action-blue-hover);
-  --color-expert-action-blue-soft: var(--coinzy-expert-action-blue-soft);
-  --color-expert-action-blue-text: var(--coinzy-expert-action-blue-text);
-  --color-expert-action-blue-ring: var(--coinzy-expert-action-blue-ring);
+  --color-expert-action-blue: var(--brand-expert-action-blue);
+  --color-expert-action-blue-hover: var(--brand-expert-action-blue-hover);
+  --color-expert-action-blue-soft: var(--brand-expert-action-blue-soft);
+  --color-expert-action-blue-text: var(--brand-expert-action-blue-text);
+  --color-expert-action-blue-ring: var(--brand-expert-action-blue-ring);
 
-  --color-expert-action-amber: var(--coinzy-expert-action-amber);
-  --color-expert-action-amber-hover: var(--coinzy-expert-action-amber-hover);
-  --color-expert-action-amber-soft: var(--coinzy-expert-action-amber-soft);
-  --color-expert-action-amber-text: var(--coinzy-expert-action-amber-text);
-  --color-expert-action-amber-ring: var(--coinzy-expert-action-amber-ring);
+  --color-expert-action-amber: var(--brand-expert-action-amber);
+  --color-expert-action-amber-hover: var(--brand-expert-action-amber-hover);
+  --color-expert-action-amber-soft: var(--brand-expert-action-amber-soft);
+  --color-expert-action-amber-text: var(--brand-expert-action-amber-text);
+  --color-expert-action-amber-ring: var(--brand-expert-action-amber-ring);
 
-  --color-expert-action-orange: var(--coinzy-expert-action-orange);
-  --color-expert-action-orange-hover: var(--coinzy-expert-action-orange-hover);
+  --color-expert-action-orange: var(--brand-expert-action-orange);
+  --color-expert-action-orange-hover: var(--brand-expert-action-orange-hover);
 
-  --color-expert-badge-neutral: var(--coinzy-expert-badge-neutral);
-  --color-expert-badge-neutral-text: var(--coinzy-expert-badge-neutral-text);
-  --color-expert-badge-neutral-ring: var(--coinzy-expert-badge-neutral-ring);
+  --color-expert-badge-neutral: var(--brand-expert-badge-neutral);
+  --color-expert-badge-neutral-text: var(--brand-expert-badge-neutral-text);
+  --color-expert-badge-neutral-ring: var(--brand-expert-badge-neutral-ring);
 
-  --color-expert-error: var(--coinzy-expert-error);
-  --color-expert-error-soft: var(--coinzy-expert-error-soft);
+  --color-expert-error: var(--brand-expert-error);
+  --color-expert-error-soft: var(--brand-expert-error-soft);
 
-  --color-expert-status-draft-bg: var(--coinzy-expert-status-draft-bg);
-  --color-expert-status-draft-text: var(--coinzy-expert-status-draft-text);
-  --color-expert-status-new-bg: var(--coinzy-expert-status-new-bg);
-  --color-expert-status-new-text: var(--coinzy-expert-status-new-text);
-  --color-expert-status-done-bg: var(--coinzy-expert-status-done-bg);
-  --color-expert-status-done-text: var(--coinzy-expert-status-done-text);
-  --color-expert-status-expired-bg: var(--coinzy-expert-status-expired-bg);
-  --color-expert-status-expired-text: var(--coinzy-expert-status-expired-text);
+  --color-expert-status-draft-bg: var(--brand-expert-status-draft-bg);
+  --color-expert-status-draft-text: var(--brand-expert-status-draft-text);
+  --color-expert-status-new-bg: var(--brand-expert-status-new-bg);
+  --color-expert-status-new-text: var(--brand-expert-status-new-text);
+  --color-expert-status-done-bg: var(--brand-expert-status-done-bg);
+  --color-expert-status-done-text: var(--brand-expert-status-done-text);
+  --color-expert-status-expired-bg: var(--brand-expert-status-expired-bg);
+  --color-expert-status-expired-text: var(--brand-expert-status-expired-text);
 
-  --color-expert-queue-accent-blue: var(--coinzy-expert-queue-accent-blue);
-  --color-expert-queue-accent-green: var(--coinzy-expert-queue-accent-green);
-  --color-expert-draft-accent: var(--coinzy-expert-draft-accent);
-  --color-expert-draft-banner: var(--coinzy-expert-draft-banner);
-  --color-expert-draft-banner-border: var(--coinzy-expert-draft-banner-border);
-  --color-expert-draft-banner-text: var(--coinzy-expert-draft-banner-text);
+  --color-expert-queue-accent-blue: var(--brand-expert-queue-accent-blue);
+  --color-expert-queue-accent-green: var(--brand-expert-queue-accent-green);
+  --color-expert-draft-accent: var(--brand-expert-draft-accent);
+  --color-expert-draft-banner: var(--brand-expert-draft-banner);
+  --color-expert-draft-banner-border: var(--brand-expert-draft-banner-border);
+  --color-expert-draft-banner-text: var(--brand-expert-draft-banner-text);
 
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
@@ -90,7 +90,7 @@
 }
 
 body {
-  background: var(--coinzy-canvas);
-  color: var(--coinzy-text);
+  background: var(--brand-canvas);
+  color: var(--brand-text);
   font-family: var(--font-app-sans);
 }

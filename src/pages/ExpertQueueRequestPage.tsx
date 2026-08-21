@@ -1,3 +1,4 @@
+import { themeConfig } from "@/config";
 import { ExpertQueueRequestPageClient } from "@/components/expert/ExpertQueueRequestPageClient";
 import { ExpertRequestDetailSkeleton } from "@/components/expert/ExpertSkeleton";
 import { useParams } from "@/lib/router";
@@ -8,7 +9,7 @@ export default function ExpertQueueRequestPage() {
 
   useEffect(() => {
     if (!reqId) return;
-    document.title = `Request ${reqId.slice(-8).toUpperCase()} | Coinzy Expert Portal`;
+    document.title = `Request ${reqId.slice(-8).toUpperCase()} | ${themeConfig.brand.appTitle}`;
   }, [reqId]);
 
   if (!reqId) {

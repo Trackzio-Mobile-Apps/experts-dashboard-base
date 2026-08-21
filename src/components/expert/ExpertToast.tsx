@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect } from "react";
 
 type ExpertToastVariant = "success" | "error" | "info";

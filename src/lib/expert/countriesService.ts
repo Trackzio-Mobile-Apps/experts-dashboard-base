@@ -1,12 +1,9 @@
-import type { ApiEnvelope } from "@/lib/expert/apiClient";
+const COUNTRIES_API_URL =
+  "https://countriesnow.space/api/v0.1/countries/iso";
 
 export type Country = {
   code: string;
   name: string;
-};
-
-type CountriesApiData = {
-  countries: Country[];
 };
 
 export class CountriesError extends Error {
@@ -64,16 +61,34 @@ export async function getCountries(): Promise<Country[]> {
   if (inflight) return inflight;
 
   inflight = (async () => {
-    const response = await fetch("/api/countries", { cache: "force-cache" });
-    const envelope = (await response.json()) as ApiEnvelope<CountriesApiData>;
-
-    if (!response.ok || envelope.error || !envelope.data?.countries) {
-      throw new CountriesError(
-        envelope.message || "Unable to load countries.",
-      );
+    const response = await fetch(COUNTRIES_API_URL, { cache: "force-cache" });
+    if (!response.ok) {
+      throw new CountriesError("Unable to load countries.");
     }
 
-    cachedCountries = envelope.data.countries;
+    const payload = (await response.json()) as {
+      error?: boolean;
+      data?: Array<{ name: string; Iso2: string }>;
+    };
+
+    if (payload.error || !Array.isArray(payload.data)) {
+      throw new CountriesError("Unable to load countries.");
+    }
+
+    cachedCountries = payload.data
+      .filter(
+        (item) =>
+          typeof item.name === "string" &&
+          item.name.trim() &&
+          typeof item.Iso2 === "string" &&
+          item.Iso2.trim(),
+      )
+      .map((item) => ({
+        code: item.Iso2.trim().toUpperCase(),
+        name: item.name.trim(),
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+
     return cachedCountries;
   })();
 

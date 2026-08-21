@@ -1,3 +1,5 @@
+import { appEnv } from "@/config/appEnv";
+
 const LOG_PREFIX = "[expert-socket]";
 
 let cachedBaseUrl: string | null = null;
@@ -8,16 +10,10 @@ function normalizeUrl(url: string): string {
   return url.replace(/\/$/, "");
 }
 
-/** Read socket URL from VITE_* vars inlined at build/dev startup. */
-export function getExpertSocketBaseUrlFromEnv(): string {
-  const url =
-    import.meta.env.VITE_EXPERT_SOCKET_URL ??
-    import.meta.env.VITE_EXPERT_API_BASE_URL ??
-    "";
-  return normalizeUrl(url);
+function getSocketUrlFromEnv(): string {
+  return normalizeUrl(appEnv.socketUrl || appEnv.apiBaseUrl);
 }
 
-/** Fetch socket URL from the Vite API middleware (uses EXPERT_API_BASE_URL). */
 async function fetchExpertSocketBaseUrlFromServer(): Promise<string> {
   const response = await fetch("/api/expert/socket-config", {
     method: "GET",
@@ -33,18 +29,13 @@ async function fetchExpertSocketBaseUrlFromServer(): Promise<string> {
   return normalizeUrl(typeof payload.url === "string" ? payload.url : "");
 }
 
-/**
- * Resolve the browser Socket.IO base URL.
- * 1. Cached value
- * 2. VITE_* env
- * 3. GET /api/expert/socket-config (reads server EXPERT_API_BASE_URL)
- */
+/** Resolve Socket.IO URL from env (`SOCKET_URL` or `API_BASE_URL`), else server. */
 export async function resolveExpertSocketBaseUrl(): Promise<string> {
   if (cachedBaseUrl) {
     return cachedBaseUrl;
   }
 
-  const fromEnv = getExpertSocketBaseUrlFromEnv();
+  const fromEnv = getSocketUrlFromEnv();
   if (fromEnv) {
     cachedBaseUrl = fromEnv;
     return fromEnv;
@@ -70,11 +61,10 @@ export function clearExpertSocketBaseUrlCache(): void {
   cachedBaseUrl = null;
 }
 
-/** One-time startup log for local debugging. */
 export function logExpertSocketStartup(options: {
   url: string;
   expertId: string;
-  source: "env" | "server-config" | "missing";
+  source: "server-config" | "missing";
 }): void {
   if (startupLogged) return;
   startupLogged = true;
@@ -88,7 +78,6 @@ export function logExpertSocketStartup(options: {
     `${LOG_PREFIX}\n` +
       `URL: ${options.url || "(empty)"}\n` +
       `Expert: ${expertPreview}\n` +
-      `Environment: ${import.meta.env.MODE}\n` +
       `Source: ${options.source}`,
   );
 }

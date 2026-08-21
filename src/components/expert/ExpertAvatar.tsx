@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useState } from "react";
 
 /** Non-empty HTTPS URL from `GET /experts/me` → `profilePicture`. */

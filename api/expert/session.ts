@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import {
   cookieHeader,
-  EXPERT_JWT_COOKIE,
+  getJwtCookieName,
   parseCookies,
 } from "../_lib/expertBackend";
 
@@ -11,11 +11,12 @@ export default async function handler(
 ) {
   const method = (req.method ?? "GET").toUpperCase();
   const cookies = parseCookies(req.headers.cookie);
+  const cookieName = getJwtCookieName();
   const secure = process.env.NODE_ENV === "production";
 
   if (method === "GET") {
     return res.status(200).json({
-      authenticated: Boolean(cookies[EXPERT_JWT_COOKIE]),
+      authenticated: Boolean(cookies[cookieName]),
     });
   }
 
@@ -43,7 +44,7 @@ export default async function handler(
 
     res.setHeader(
       "Set-Cookie",
-      cookieHeader(EXPERT_JWT_COOKIE, token, {
+      cookieHeader(cookieName, token, {
         httpOnly: true,
         path: "/",
         sameSite: "lax",
@@ -57,7 +58,7 @@ export default async function handler(
   if (method === "DELETE") {
     res.setHeader(
       "Set-Cookie",
-      cookieHeader(EXPERT_JWT_COOKIE, "", {
+      cookieHeader(cookieName, "", {
         httpOnly: true,
         path: "/",
         sameSite: "lax",

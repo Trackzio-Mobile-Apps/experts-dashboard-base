@@ -1,5 +1,5 @@
 {
-  "name": "coinzy-expert-webapp-next-vite",
+  "name": "expert-dashboard",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -26,7 +26,6 @@
     "socket.io-client": "^4.8.3"
   },
   "devDependencies": {
-    "@netlify/functions": "^4.3.0",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

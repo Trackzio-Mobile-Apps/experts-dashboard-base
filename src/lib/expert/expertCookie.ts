@@ -1,5 +1,7 @@
-/** HttpOnly cookie holding the expert JWT. */
-export const EXPERT_JWT_COOKIE = "coinzy_expert_jwt";
+import { getAppSlug } from "@/config/appEnv";
+
+/** HttpOnly cookie holding the expert JWT. Keep in sync with server `APP_SLUG`. */
+export const EXPERT_JWT_COOKIE = `${getAppSlug()}_jwt`;
 
 export function expertJwtCookieOptions(maxAge = 60 * 60 * 24 * 7) {
   return {

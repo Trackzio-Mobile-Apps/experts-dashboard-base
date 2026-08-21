@@ -6,31 +6,24 @@ import { createExpertApiMiddleware } from "./server/expertApiMiddleware";
 
 const rootDir = path.dirname(fileURLToPath(import.meta.url));
 
+function applyServerEnv(env: Record<string, string>): void {
+  process.env.API_BASE_URL =
+    env.API_BASE_URL || env.EXPERT_API_BASE_URL || process.env.API_BASE_URL || "";
+  process.env.SOCKET_URL = env.SOCKET_URL || process.env.SOCKET_URL || "";
+  process.env.APP_SLUG = env.APP_SLUG || process.env.APP_SLUG || "expert";
+}
+
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, rootDir, "");
-  // Prefer server-side EXPERT_API_BASE_URL, then Vite public vars.
-  process.env.EXPERT_API_BASE_URL =
-    env.EXPERT_API_BASE_URL ||
-    env.VITE_EXPERT_API_BASE_URL ||
-    process.env.EXPERT_API_BASE_URL ||
-    "";
-  process.env.VITE_EXPERT_API_BASE_URL =
-    env.VITE_EXPERT_API_BASE_URL ||
-    process.env.EXPERT_API_BASE_URL ||
-    "";
-  process.env.VITE_EXPERT_SOCKET_URL =
-    env.VITE_EXPERT_SOCKET_URL ||
-    env.VITE_EXPERT_API_BASE_URL ||
-    process.env.EXPERT_API_BASE_URL ||
-    "";
+  applyServerEnv(loadEnv(mode, rootDir, ""));
 
   const apiMiddleware = createExpertApiMiddleware();
 
   return {
+    envPrefix: ["APP_", "API_", "SOCKET_"],
     plugins: [
       react(),
       {
-        name: "coinzy-expert-api",
+        name: "expert-api",
         configureServer(server) {
           server.middlewares.use(apiMiddleware);
         },

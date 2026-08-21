@@ -1,5 +1,3 @@
-"use client";
-
 import { ExpertEvaluationDueSoonModal } from "@/components/expert/ExpertEvaluationDueSoonModal";
 import { EVALUATION_DUE_SOON_PROMPT_KEY } from "@/lib/expert/constants";
 import { useExpertPanelData } from "@/lib/expert/expertPanelDataStore";

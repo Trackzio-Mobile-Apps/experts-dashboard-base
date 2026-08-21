@@ -1,5 +1,3 @@
-"use client";
-
 import { ExpertSessionSkeleton } from "@/components/expert/ExpertSkeleton";
 import { hasExpertSession } from "@/lib/expert/apiClient";
 import { useExpertProfile } from "@/lib/expert/expertProfileStore";

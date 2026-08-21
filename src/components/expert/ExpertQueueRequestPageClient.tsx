@@ -1,5 +1,3 @@
-"use client";
-
 import { ExpertEvaluationRequestView } from "@/components/expert/ExpertEvaluationRequestView";
 import { ExpertRequestDetailSkeleton } from "@/components/expert/ExpertSkeleton";
 import {

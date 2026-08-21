@@ -1,22 +1,22 @@
 /**
- * Single place to rebrand / restyle this app for a new product.
+ * White-label theme defaults.
  *
- * Edit here:
- *   brand, fonts, colors, buttons, icons, report copy
+ * Brand name / logo / title are overridden by `APP_*` env vars
+ * (`src/config/appEnv.ts`). Colors, fonts, and buttons stay here.
  *
  * Applied at startup by `applyTheme()` in `main.tsx`.
- * Data models (API fields) live in `src/lib/expert/types.ts` + mappers —
- * change those when the backend contract changes.
  */
 
-export const themeConfig = {
+import { appEnv } from "@/config/appEnv";
+
+const defaultThemeConfig = {
   brand: {
-    name: "Coinzy",
-    appTitle: "Coinzy Expert Portal",
+    name: "Expert",
+    appTitle: "Expert Portal",
     logoSrc: "/coinzy-logo.png",
-    logoAlt: "Coinzy",
+    logoAlt: "Expert",
     faviconSrc: "/favicon.png",
-    reportName: "Coinzy AI",
+    reportName: "Expert",
     portalLabels: {
       expert: "Expert Portal",
       client: "Client Portal",
@@ -199,12 +199,25 @@ export const themeConfig = {
 
   /** Evaluation / PDF report copy (brand colors still come from `colors`) */
   report: {
-    subtitle: "Expert Coin Evaluation",
+    subtitle: "Expert Evaluation",
     title: "Evaluation Report",
     layoutVersion: "v1" as "v1" | "v2",
   },
 } as const;
 
-export type ThemeConfig = typeof themeConfig;
-export type ButtonSize = keyof typeof themeConfig.buttons.sizes;
-export type ButtonVariant = keyof typeof themeConfig.buttons.variants;
+export const themeConfig = {
+  ...defaultThemeConfig,
+  brand: {
+    ...defaultThemeConfig.brand,
+    name: appEnv.name || defaultThemeConfig.brand.name,
+    appTitle: appEnv.title || defaultThemeConfig.brand.appTitle,
+    logoSrc: appEnv.logoUrl || defaultThemeConfig.brand.logoSrc,
+    logoAlt: appEnv.name || defaultThemeConfig.brand.logoAlt,
+    faviconSrc: appEnv.faviconUrl || defaultThemeConfig.brand.faviconSrc,
+    reportName: appEnv.reportName || defaultThemeConfig.brand.reportName,
+  },
+};
+
+export type ThemeConfig = typeof defaultThemeConfig;
+export type ButtonSize = keyof typeof defaultThemeConfig.buttons.sizes;
+export type ButtonVariant = keyof typeof defaultThemeConfig.buttons.variants;

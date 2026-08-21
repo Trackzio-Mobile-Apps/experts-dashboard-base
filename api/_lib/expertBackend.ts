@@ -1,16 +1,33 @@
-/** Shared helpers for Vercel `/api/*` routes (mirrors Vite middleware). */
+/** Shared helpers for local middleware and Vercel `/api/*` routes. */
 
-export const EXPERT_JWT_COOKIE = "coinzy_expert_jwt";
 export const COUNTRIES_API_URL =
   "https://countriesnow.space/api/v0.1/countries/iso";
 
-export function getBackendBaseUrl(): string {
-  const base =
-    process.env.EXPERT_API_BASE_URL ??
-    process.env.VITE_EXPERT_API_BASE_URL ??
-    process.env.VITE_EXPERT_SOCKET_URL ??
-    "https://coinzy-experts-api.trackzio.com";
-  return base.replace(/\/$/, "");
+function firstEnv(...keys: string[]): string {
+  for (const key of keys) {
+    const value = process.env[key]?.trim();
+    if (value) return value;
+  }
+  return "";
+}
+
+function sanitizeSlug(value: string): string {
+  const slug = value.toLowerCase().replace(/[^a-z0-9_-]/g, "");
+  return slug || "expert";
+}
+
+/** Expert backend origin. Server-only — never expose to the browser. */
+export function getApiBaseUrl(): string {
+  return firstEnv("API_BASE_URL", "EXPERT_API_BASE_URL").replace(/\/$/, "");
+}
+
+/** Socket.IO origin. Defaults to `API_BASE_URL`. */
+export function getSocketUrl(): string {
+  return (firstEnv("SOCKET_URL") || getApiBaseUrl()).replace(/\/$/, "");
+}
+
+export function getJwtCookieName(): string {
+  return `${sanitizeSlug(firstEnv("APP_SLUG") || "expert")}_jwt`;
 }
 
 export function parseCookies(
@@ -79,3 +96,6 @@ export function isAllowedMediaUrl(url: URL): boolean {
   }
   return true;
 }
+
+export const API_UNAVAILABLE_MESSAGE =
+  "Unable to reach the expert API. Check API_BASE_URL and backend availability.";

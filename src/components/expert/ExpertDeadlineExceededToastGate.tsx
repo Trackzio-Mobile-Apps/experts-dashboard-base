@@ -1,5 +1,3 @@
-"use client";
-
 import { ExpertToast } from "@/components/expert/ExpertToast";
 import {
   collectExpiredRequestNotifications,

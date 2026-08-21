@@ -1,6 +1,8 @@
-# Expert Webapp (Vite + React)
+# White-label Expert Dashboard
 
-Expert panel SPA. Stack: Vite 7, React 19, React Router 7, Tailwind CSS 4.
+SPA expert panel. Stack: Vite 7, React 19, React Router 7, Tailwind CSS 4.
+
+Brand a new product with **env vars** — do not use `VITE_` or `NEXT_PUBLIC_` prefixes.
 
 ## Setup
 
@@ -21,42 +23,34 @@ Open http://localhost:3000
 
 ## Environment
 
-`.env.local`:
+Set in `.env.local` before `npm run build`. They are **inlined into `dist/`**.
 
 ```
-EXPERT_API_BASE_URL=https://coinzy-experts-api.trackzio.com
+API_BASE_URL=https://your-experts-api.example.com
+SOCKET_URL=https://your-experts-api.example.com   # optional; defaults to API_BASE_URL
+
+APP_NAME=Acme
+APP_TITLE=Acme Expert Portal
+APP_SLUG=acme
+APP_LOGO_URL=/logo.png
+APP_FAVICON_URL=/favicon.png
+APP_REPORT_NAME=Acme
 ```
 
-Optional: `VITE_EXPERT_SOCKET_URL`
+`APP_SLUG` namespaces browser storage (`{slug}.expert.jwt`, etc.).
 
-## New product / rebrand
+Colors, fonts, and buttons: `src/config/theme.config.ts`. Replace assets under `public/`.
 
-Edit **one file**: [`src/config/theme.config.ts`](src/config/theme.config.ts)
+## Deploy (Netlify — static `dist` only)
 
-| Change | Section |
-| --- | --- |
-| Name, logo, titles | `brand`, `report` |
-| Fonts | `fonts` |
-| Primary / secondary colors | `colors` |
-| Button size & variants | `buttons` |
-| Icon size / assets | `icons` |
+```bash
+cp .env.example .env.local   # edit values
+npm install
+npm run build
+```
 
-Replace assets under `public/` (logo, favicon, nav icons).
+Upload the **`dist`** folder (Deploys → Deploy manually). Do not add Netlify functions.
 
-### Domain models (API shapes)
+The expert API must allow CORS from your Netlify domain.
 
-When the backend or product fields change, update:
-
-| Area | File |
-| --- | --- |
-| API / UI types | `src/lib/expert/types.ts` |
-| Evaluation form fields | `src/lib/expert/evaluationForm.ts` |
-| Form ↔ report mapping | `src/lib/expert/reportContentFields.ts` |
-| Queue / drafts / history mapping | `src/lib/expert/requestMappers.ts` |
-
-UI branding stays in `theme.config.ts`; data contracts stay in `types.ts` + mappers.
-
-## Deploy
-
-- **Netlify** — `netlify.toml` + `netlify/functions/` (set `EXPERT_API_BASE_URL`)
-- **Vercel** — `vercel.json` + `api/` (set `EXPERT_API_BASE_URL`)
+`dist` already includes `_redirects` so client routes work.

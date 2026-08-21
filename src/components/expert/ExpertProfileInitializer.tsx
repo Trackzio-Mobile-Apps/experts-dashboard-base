@@ -1,5 +1,3 @@
-"use client";
-
 import { useExpertProfile } from "@/lib/expert/expertProfileStore";
 import { useEffect, useRef } from "react";
 

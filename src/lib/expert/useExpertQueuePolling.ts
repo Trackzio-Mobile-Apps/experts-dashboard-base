@@ -1,5 +1,3 @@
-"use client";
-
 import { QUEUE_POLL_INTERVAL_MS } from "@/lib/expert/constants";
 import { useExpertPanelData } from "@/lib/expert/expertPanelDataStore";
 import { useExpertSocket } from "@/lib/expert/expertSocketProvider";

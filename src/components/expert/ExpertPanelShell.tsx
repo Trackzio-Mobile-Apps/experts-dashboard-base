@@ -1,5 +1,3 @@
-"use client";
-
 import { Link, useRouter, usePathname } from "@/lib/router";
 import {
   panelListPageClass,

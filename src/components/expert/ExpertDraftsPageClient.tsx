@@ -1,5 +1,3 @@
-"use client";
-
 import { ExpertDraftsPageBody } from "@/components/expert/ExpertDraftsPageBody";
 import { evaluateFormProgress } from "@/lib/expert/evaluationForm";
 import { loadEvaluationDraft } from "@/lib/expert/evaluationDraftStorage";

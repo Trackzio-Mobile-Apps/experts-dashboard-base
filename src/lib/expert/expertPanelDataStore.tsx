@@ -1,5 +1,3 @@
-"use client";
-
 import { normalizeMongoId } from "@/lib/expert/format";
 import {
   buildDraftsList,

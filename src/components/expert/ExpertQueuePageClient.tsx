@@ -1,9 +1,7 @@
-"use client";
-
 import { ExpertDashboardSection } from "@/components/expert/ExpertDashboardSection";
 import { ExpertQueuePageBody } from "@/components/expert/ExpertQueuePageBody";
 import { ExpertToast } from "@/components/expert/ExpertToast";
-import { QUEUE_PAGE_SIZE } from "@/lib/expert/constants";
+import { QUEUE_PAGE_SIZE, LOGIN_SUCCESS_KEY } from "@/lib/expert/constants";
 import { clearEvaluationDraft } from "@/lib/expert/evaluationDraftStorage";
 import { useExpertPanelData } from "@/lib/expert/expertPanelDataStore";
 import { useExpertSocket } from "@/lib/expert/expertSocketProvider";
@@ -47,11 +45,11 @@ export function ExpertQueuePageClient() {
 
   useEffect(() => {
     if (
-      window.sessionStorage.getItem("coinzy_expert_login_success") !== "1"
+      window.sessionStorage.getItem(LOGIN_SUCCESS_KEY) !== "1"
     ) {
       return;
     }
-    window.sessionStorage.removeItem("coinzy_expert_login_success");
+    window.sessionStorage.removeItem(LOGIN_SUCCESS_KEY);
     const showTimer = window.setTimeout(() => {
       setShowLoginToast(true);
     }, 0);

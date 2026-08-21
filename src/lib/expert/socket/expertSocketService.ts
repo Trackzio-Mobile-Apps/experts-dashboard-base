@@ -1,9 +1,6 @@
-"use client";
-
 import { io, type Socket } from "socket.io-client";
 import {
   clearExpertSocketBaseUrlCache,
-  getExpertSocketBaseUrlFromEnv,
   logExpertSocketStartup,
   resetExpertSocketStartupLog,
   resolveExpertSocketBaseUrl,
@@ -160,11 +157,6 @@ function destroySocketConnection(): void {
   connectedExpertId = null;
 }
 
-/** @deprecated Prefer resolveExpertSocketBaseUrl — kept for connect_error logs. */
-export function getExpertSocketBaseUrl(): string {
-  return getExpertSocketBaseUrlFromEnv();
-}
-
 export function isExpertSocketConnected(): boolean {
   return Boolean(socket?.connected);
 }
@@ -215,25 +207,22 @@ export async function resolveAndConnectExpertSocket(options: {
   signal?: AbortSignal;
 }): Promise<() => void> {
   const generation = ++connectGeneration;
-  const envUrl = getExpertSocketBaseUrlFromEnv();
-  const baseUrl = envUrl || (await resolveExpertSocketBaseUrl());
+  const baseUrl = await resolveExpertSocketBaseUrl();
 
   if (options.signal?.aborted || generation !== connectGeneration) {
     return () => {};
   }
 
-  const source = envUrl ? "env" : baseUrl ? "server-config" : "missing";
   logExpertSocketStartup({
     url: baseUrl,
     expertId: options.expertId,
-    source,
+    source: baseUrl ? "server-config" : "missing",
   });
 
   if (!baseUrl || !options.expertId.trim()) {
     log("not connecting — missing socket URL or expert id", {
       baseUrl: baseUrl || "(empty)",
       expertId: options.expertId || "(empty)",
-      envUrl: envUrl || "(empty)",
     });
     options.handlers.onConnectionStateChange("disconnected");
     return () => {};
@@ -269,26 +258,4 @@ export function disconnectExpertSocket(): void {
 export function updateExpertSocketHandlers(handlers: ExpertSocketHandlers): void {
   activeHandlers = handlers;
   bindSocketHandlers();
-}
-
-/** @deprecated Use resolveAndConnectExpertSocket */
-export function connectExpertSocket(options: {
-  expertId: string;
-  handlers: ExpertSocketHandlers;
-}): () => void {
-  const baseUrl = getExpertSocketBaseUrlFromEnv();
-  if (!baseUrl || !options.expertId.trim()) {
-    options.handlers.onConnectionStateChange("disconnected");
-    return () => {};
-  }
-
-  connectExpertSocketWithUrl({
-    expertId: options.expertId,
-    baseUrl,
-    handlers: options.handlers,
-  });
-
-  return () => {
-    detachExpertSocketHandlers(options.handlers);
-  };
 }

@@ -29,7 +29,7 @@ export function ExpertQueueNavIcon({
       alt=""
       width={sizePx}
       height={sizePx}
-      className={`h-[var(--coinzy-nav-icon-size)] w-[var(--coinzy-nav-icon-size)] shrink-0 brightness-0 invert ${className ?? ""}`}
+      className={`h-[var(--brand-nav-icon-size)] w-[var(--brand-nav-icon-size)] shrink-0 brightness-0 invert ${className ?? ""}`}
       aria-hidden
     />
   );

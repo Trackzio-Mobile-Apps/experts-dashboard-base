@@ -1,5 +1,3 @@
-"use client";
-
 import { ExpertPanelShell } from "@/components/expert/ExpertPanelShell";
 import { useExpertPanelData } from "@/lib/expert/expertPanelDataStore";
 import { useExpertProfile } from "@/lib/expert/expertProfileStore";

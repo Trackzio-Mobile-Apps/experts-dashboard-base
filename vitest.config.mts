@@ -15,4 +15,5 @@ export default defineConfig({
       "@": path.resolve(rootDir, "./src"),
     },
   },
+  envPrefix: ["APP_", "API_", "SOCKET_"],
 });

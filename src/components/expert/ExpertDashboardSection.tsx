@@ -1,5 +1,3 @@
-"use client";
-
 import { ExpertDashboardHeader } from "@/components/expert/ExpertDashboardHeader";
 import { formatAvgTurnaround, getExpertGreeting } from "@/lib/expert/format";
 import { useExpertPanelData } from "@/lib/expert/expertPanelDataStore";

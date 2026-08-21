@@ -1,15 +1,15 @@
 /**
  * Expert panel API client.
  *
- * Browser requests go through `/api/expert/*` (same origin) to avoid CORS.
- * The JWT is stored in an HttpOnly cookie (`coinzy_expert_jwt`) via
- * `/api/expert/session`; the proxy attaches it when forwarding to the backend.
+ * With `API_BASE_URL` (static `dist` / Netlify drag-drop): calls the expert
+ * API directly and stores the JWT in sessionStorage.
+ * Without it (local proxy): uses `/api/expert/*` and an HttpOnly cookie.
  */
 
-const BROWSER_API_PREFIX = "/api/expert";
-const SESSION_ROUTE = "/api/expert/session";
+import { appEnv, STORAGE_KEYS } from "@/config/appEnv";
 
-const ACCOUNT_DISABLED_STORAGE_KEY = "coinzy_expert_account_disabled";
+const PROXY_API_PREFIX = "/api/expert";
+const SESSION_ROUTE = "/api/expert/session";
 
 const EXPERT_LOGIN_PATH = "/expert/login";
 const ACCOUNT_DISABLED_QUERY = "account=disabled";
@@ -40,16 +40,27 @@ type RequestOptions = {
   skipAuthHandling?: boolean;
 };
 
-function getBaseUrl(): string {
-  if (typeof window !== "undefined") {
-    return BROWSER_API_PREFIX;
-  }
+function usesDirectApi(): boolean {
+  return Boolean(appEnv.apiBaseUrl);
+}
 
-  const base =
-    import.meta.env.VITE_EXPERT_API_BASE_URL ??
-    import.meta.env.VITE_EXPERT_SOCKET_URL ??
-    "";
-  return base.replace(/\/$/, "");
+function getBaseUrl(): string {
+  return appEnv.apiBaseUrl || PROXY_API_PREFIX;
+}
+
+function readStoredJwt(): string {
+  if (typeof window === "undefined") return "";
+  return sessionStorage.getItem(STORAGE_KEYS.jwt)?.trim() ?? "";
+}
+
+function writeStoredJwt(token: string): void {
+  if (typeof window === "undefined") return;
+  sessionStorage.setItem(STORAGE_KEYS.jwt, token);
+}
+
+function clearStoredJwt(): void {
+  if (typeof window === "undefined") return;
+  sessionStorage.removeItem(STORAGE_KEYS.jwt);
 }
 
 function buildUrl(
@@ -80,6 +91,8 @@ function buildUrl(
 
 export async function hasExpertSession(): Promise<boolean> {
   if (typeof window === "undefined") return false;
+  if (readStoredJwt()) return true;
+  if (usesDirectApi()) return false;
 
   try {
     const response = await fetch(SESSION_ROUTE, {
@@ -99,6 +112,8 @@ export async function hasExpertSession(): Promise<boolean> {
 
 export async function setExpertToken(token: string): Promise<void> {
   if (typeof window === "undefined") return;
+  writeStoredJwt(token);
+  if (usesDirectApi()) return;
 
   const response = await fetch(SESSION_ROUTE, {
     method: "POST",
@@ -114,6 +129,8 @@ export async function setExpertToken(token: string): Promise<void> {
 
 export async function clearExpertToken(): Promise<void> {
   if (typeof window === "undefined") return;
+  clearStoredJwt();
+  if (usesDirectApi()) return;
 
   try {
     await fetch(SESSION_ROUTE, {
@@ -127,12 +144,12 @@ export async function clearExpertToken(): Promise<void> {
 
 export function isExpertAccountDisabled(): boolean {
   if (typeof window === "undefined") return false;
-  return sessionStorage.getItem(ACCOUNT_DISABLED_STORAGE_KEY) === "1";
+  return sessionStorage.getItem(STORAGE_KEYS.accountDisabled) === "1";
 }
 
 export function clearExpertAccountDisabled(): void {
   if (typeof window === "undefined") return;
-  sessionStorage.removeItem(ACCOUNT_DISABLED_STORAGE_KEY);
+  sessionStorage.removeItem(STORAGE_KEYS.accountDisabled);
 }
 
 function redirectToLogin(): void {
@@ -143,7 +160,7 @@ function redirectToLogin(): void {
 
 function showAccountDisabledState(): void {
   if (typeof window === "undefined") return;
-  sessionStorage.setItem(ACCOUNT_DISABLED_STORAGE_KEY, "1");
+  sessionStorage.setItem(STORAGE_KEYS.accountDisabled, "1");
   window.dispatchEvent(new CustomEvent("expert:account-disabled"));
   window.location.assign(`${EXPERT_LOGIN_PATH}?${ACCOUNT_DISABLED_QUERY}`);
 }
@@ -162,10 +179,15 @@ export async function expertForceLogout(
 function applyRequestHeaders(
   headers: Record<string, string>,
 ): Record<string, string> {
-  return {
+  const next: Record<string, string> = {
     "Content-Type": "application/json",
     ...headers,
   };
+  const token = readStoredJwt();
+  if (token && !next.Authorization) {
+    next.Authorization = `Bearer ${token}`;
+  }
+  return next;
 }
 
 function isApiEnvelope(value: unknown): value is ApiEnvelope<unknown> {
@@ -271,7 +293,7 @@ async function request<T>(
       method,
       headers: applyRequestHeaders(headers),
       body: body !== undefined ? JSON.stringify(body) : undefined,
-      credentials: "include",
+      credentials: usesDirectApi() ? "omit" : "include",
       signal,
     });
   } catch {

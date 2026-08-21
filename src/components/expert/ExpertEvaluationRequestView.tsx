@@ -1,5 +1,3 @@
-"use client";
-
 import { Link, useRouter } from "@/lib/router";
 import type { EvaluationFormState } from "@/lib/expert/types";
 import {

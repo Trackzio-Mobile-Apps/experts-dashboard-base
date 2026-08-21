@@ -1,5 +1,3 @@
-"use client";
-
 import {
   evaluateFormProgress,
   EVALUATION_FORM_SECTIONS,

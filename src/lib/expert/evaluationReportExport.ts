@@ -1,4 +1,4 @@
-import { themeConfig } from "@/config";
+import { appEnv, themeConfig } from "@/config";
 import {
   authenticityAssessmentTheme,
   authenticitySummaryTheme,
@@ -83,6 +83,7 @@ function reportMediaFetchUrl(url: string): string {
   if (!trimmed) return trimmed;
   if (trimmed.startsWith("/")) return trimmed;
   if (trimmed.startsWith("data:")) return trimmed;
+  if (appEnv.apiBaseUrl) return trimmed;
   return `${REPORT_MEDIA_PROXY_PATH}?url=${encodeURIComponent(trimmed)}`;
 }
 
@@ -672,8 +673,7 @@ function buildResolveAssetUrl(
     if (
       logoDataUrl &&
       (trimmed === REPORT_LOGO_PATH ||
-        trimmed.endsWith(REPORT_LOGO_PATH) ||
-        trimmed.endsWith("/coinzy-logo.png"))
+        trimmed.endsWith(REPORT_LOGO_PATH))
     ) {
       return logoDataUrl;
     }

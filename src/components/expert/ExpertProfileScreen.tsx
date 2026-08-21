@@ -1,5 +1,3 @@
-"use client";
-
 import { ExpertAvatar } from "@/components/expert/ExpertAvatar";
 import { ExpertEmptyState } from "@/components/expert/ExpertEmptyState";
 import { ExpertProfileSkeleton } from "@/components/expert/ExpertSkeleton";

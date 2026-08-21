@@ -1,5 +1,3 @@
-"use client";
-
 import {
   InputGroup,
   PasswordInputGroup,
@@ -16,6 +14,7 @@ import {
 } from "@/lib/expert/authService";
 import {
   EVALUATION_DUE_SOON_PROMPT_KEY,
+  LOGIN_SUCCESS_KEY,
 } from "@/lib/expert/constants";
 import { useRouter } from "@/lib/router";
 import { useEffect, useState, type FormEvent } from "react";
@@ -70,7 +69,7 @@ export function ExpertLoginForm() {
 
     try {
       await login(email, password);
-      window.sessionStorage.setItem("coinzy_expert_login_success", "1");
+      window.sessionStorage.setItem(LOGIN_SUCCESS_KEY, "1");
       window.sessionStorage.setItem(EVALUATION_DUE_SOON_PROMPT_KEY, "1");
       router.replace("/expert/queue");
     } catch (err) {

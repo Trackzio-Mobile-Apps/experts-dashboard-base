@@ -1,5 +1,3 @@
-"use client";
-
 import { ExpertAvailabilityPromptGate } from "@/components/expert/ExpertAvailabilityPromptGate";
 import { ExpertDeadlineExceededToastGate } from "@/components/expert/ExpertDeadlineExceededToastGate";
 import { ExpertEvaluationDueSoonGate } from "@/components/expert/ExpertEvaluationDueSoonGate";

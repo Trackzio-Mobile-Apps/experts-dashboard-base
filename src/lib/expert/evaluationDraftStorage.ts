@@ -1,7 +1,8 @@
 import type { EvaluationFormState } from "@/lib/expert/types";
+import { STORAGE_KEYS } from "@/config/appEnv";
 
-const DRAFT_PREFIX = "coinzy_eval_draft_";
-const REPORT_ID_PREFIX = "coinzy_eval_report_id_";
+const DRAFT_PREFIX = STORAGE_KEYS.evalDraftPrefix;
+const REPORT_ID_PREFIX = STORAGE_KEYS.evalReportIdPrefix;
 
 function notifyDraftNavChanged(): void {
   if (typeof window === "undefined") return;

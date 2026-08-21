@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import {
-  EXPERT_JWT_COOKIE,
+  getJwtCookieName,
   isAllowedMediaUrl,
   parseCookies,
 } from "../_lib/expertBackend";
@@ -16,7 +16,7 @@ export default async function handler(
   }
 
   const cookies = parseCookies(req.headers.cookie);
-  if (!cookies[EXPERT_JWT_COOKIE]) {
+  if (!cookies[getJwtCookieName()]) {
     return res.status(401).json({ error: true, message: "Unauthorized." });
   }
 

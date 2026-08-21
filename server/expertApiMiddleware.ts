@@ -1,55 +1,15 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { Connect } from "vite";
-
-/** Keep in sync with `src/lib/expert/expertCookie.ts`. */
-const EXPERT_JWT_COOKIE = "coinzy_expert_jwt";
-const COUNTRIES_API_URL = "https://countriesnow.space/api/v0.1/countries/iso";
-
-function getBackendBaseUrl(): string {
-  const base =
-    process.env.EXPERT_API_BASE_URL ??
-    process.env.VITE_EXPERT_API_BASE_URL ??
-    process.env.VITE_EXPERT_SOCKET_URL ??
-    "https://coinzy-experts-api.trackzio.com";
-  return base.replace(/\/$/, "");
-}
-
-function parseCookies(header: string | undefined): Record<string, string> {
-  if (!header) return {};
-  const out: Record<string, string> = {};
-  for (const part of header.split(";")) {
-    const idx = part.indexOf("=");
-    if (idx === -1) continue;
-    const key = part.slice(0, idx).trim();
-    const value = part.slice(idx + 1).trim();
-    if (key) out[key] = decodeURIComponent(value);
-  }
-  return out;
-}
-
-function cookieHeader(
-  name: string,
-  value: string,
-  options: {
-    httpOnly?: boolean;
-    path?: string;
-    sameSite?: "lax" | "strict" | "none";
-    secure?: boolean;
-    maxAge?: number;
-  },
-): string {
-  const parts = [`${name}=${encodeURIComponent(value)}`];
-  parts.push(`Path=${options.path ?? "/"}`);
-  if (options.maxAge !== undefined) parts.push(`Max-Age=${options.maxAge}`);
-  if (options.httpOnly) parts.push("HttpOnly");
-  if (options.secure) parts.push("Secure");
-  if (options.sameSite) {
-    parts.push(
-      `SameSite=${options.sameSite[0]!.toUpperCase()}${options.sameSite.slice(1)}`,
-    );
-  }
-  return parts.join("; ");
-}
+import {
+  API_UNAVAILABLE_MESSAGE,
+  cookieHeader,
+  COUNTRIES_API_URL,
+  getApiBaseUrl,
+  getJwtCookieName,
+  getSocketUrl,
+  isAllowedMediaUrl,
+  parseCookies,
+} from "../api/_lib/expertBackend";
 
 function readBody(req: IncomingMessage): Promise<Buffer> {
   return new Promise((resolve, reject) => {
@@ -77,45 +37,18 @@ function sendJson(
   res.end(body);
 }
 
-function isPrivateHost(hostname: string): boolean {
-  const host = hostname.toLowerCase();
-  if (host === "localhost" || host === "127.0.0.1" || host === "::1") {
-    return true;
-  }
-  if (
-    host.startsWith("10.") ||
-    host.startsWith("192.168.") ||
-    host.startsWith("169.254.")
-  ) {
-    return true;
-  }
-  if (/^172\.(1[6-9]|2\d|3[01])\./.test(host)) {
-    return true;
-  }
-  return false;
-}
-
-function isAllowedMediaUrl(url: URL): boolean {
-  if (url.protocol !== "https:" && url.protocol !== "http:") {
-    return false;
-  }
-  if (isPrivateHost(url.hostname)) {
-    return false;
-  }
-  return true;
-}
-
 async function handleSession(
   req: IncomingMessage,
   res: ServerResponse,
 ): Promise<boolean> {
   const method = (req.method ?? "GET").toUpperCase();
   const cookies = parseCookies(req.headers.cookie);
+  const cookieName = getJwtCookieName();
   const secure = process.env.NODE_ENV === "production";
 
   if (method === "GET") {
     sendJson(res, 200, {
-      authenticated: Boolean(cookies[EXPERT_JWT_COOKIE]),
+      authenticated: Boolean(cookies[cookieName]),
     });
     return true;
   }
@@ -148,7 +81,7 @@ async function handleSession(
       200,
       { ok: true },
       {
-        "Set-Cookie": cookieHeader(EXPERT_JWT_COOKIE, token, {
+        "Set-Cookie": cookieHeader(cookieName, token, {
           httpOnly: true,
           path: "/",
           sameSite: "lax",
@@ -166,7 +99,7 @@ async function handleSession(
       200,
       { ok: true },
       {
-        "Set-Cookie": cookieHeader(EXPERT_JWT_COOKIE, "", {
+        "Set-Cookie": cookieHeader(cookieName, "", {
           httpOnly: true,
           path: "/",
           sameSite: "lax",
@@ -186,8 +119,7 @@ async function handleSocketConfig(
   _req: IncomingMessage,
   res: ServerResponse,
 ): Promise<boolean> {
-  const url = getBackendBaseUrl();
-  sendJson(res, 200, { url });
+  sendJson(res, 200, { url: getSocketUrl() });
   return true;
 }
 
@@ -197,8 +129,7 @@ async function handleMedia(
   urlObj: URL,
 ): Promise<boolean> {
   const cookies = parseCookies(req.headers.cookie);
-  const token = cookies[EXPERT_JWT_COOKIE];
-  if (!token) {
+  if (!cookies[getJwtCookieName()]) {
     sendJson(res, 401, { error: true, message: "Unauthorized." });
     return true;
   }
@@ -308,11 +239,11 @@ async function handleExpertProxy(
   const method = (req.method ?? "GET").toUpperCase();
   const path = urlObj.pathname.replace(/^\/api\/expert\/?/, "");
   const cookies = parseCookies(req.headers.cookie);
-  const token = cookies[EXPERT_JWT_COOKIE];
+  const token = cookies[getJwtCookieName()];
   const bodyBuffer =
     method === "GET" || method === "HEAD" ? undefined : await readBody(req);
 
-  const target = new URL(`/${path}`, getBackendBaseUrl());
+  const target = new URL(`/${path}`, getApiBaseUrl());
   target.search = urlObj.search;
 
   const headers = new Headers();
@@ -346,8 +277,7 @@ async function handleExpertProxy(
   } catch {
     sendJson(res, 502, {
       error: true,
-      message:
-        "Unable to reach the expert API. Check EXPERT_API_BASE_URL and backend availability.",
+      message: API_UNAVAILABLE_MESSAGE,
       data: null,
     });
   }

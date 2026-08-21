@@ -1,5 +1,3 @@
-"use client";
-
 import { ExpertAvailabilityPromptModal } from "@/components/expert/ExpertAvailabilityPromptModal";
 import { useExpertProfile } from "@/lib/expert/expertProfileStore";
 import {
