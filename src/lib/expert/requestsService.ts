@@ -36,7 +36,6 @@ export async function getExpertOffers() {
 }
 
 export async function getExpertRequests(statuses?: RequestStatus[]) {
-  const params: Record<string, string> = {};
   const query = statuses?.length
     ? "?" + statuses.map((s) => `status=${encodeURIComponent(s)}`).join("&")
     : "";
@@ -69,8 +68,4 @@ export async function getExpertRequests(statuses?: RequestStatus[]) {
 
 export async function getAcceptedRequests() {
   return getExpertRequests(["accepted"]);
-}
-
-export async function getCompletedRequests() {
-  return getExpertRequests(["completed", "report_submitted"]);
 }

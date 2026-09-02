@@ -178,6 +178,46 @@ export type ExpertReviewsApiData = {
   reviews: BackendExpertReview[];
 };
 
+export type BackendInboxItem = {
+  _id: string;
+  event: string;
+  payload?: {
+    offerId?: string | null;
+    requestId?: string | null;
+    round?: number | null;
+    expiresAt?: string | null;
+  };
+  requestId?: string | null;
+  offerId?: string | null;
+  isShown?: boolean;
+  isRead?: boolean;
+  isActive?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type ExpertInboxApiData = {
+  inbox: BackendInboxItem[];
+};
+
+export type ExpertInboxItemApiData = {
+  inboxItem: BackendInboxItem;
+};
+
+export type ExpertInboxItem = {
+  id: string;
+  event: string;
+  offerId: string;
+  requestId: string;
+  round: number | null;
+  expiresAt: string | null;
+  isShown: boolean;
+  isRead: boolean;
+  isActive: boolean;
+  createdAt: string | null;
+  updatedAt: string | null;
+};
+
 export type RequestStatus =
   | "created"
   | "allocating"
@@ -210,8 +250,10 @@ export type BackendRequest = {
   completedAt?: string | null;
   createdAt?: string;
   updatedAt?: string;
-  /** From `GET /experts/me/requests` once a report exists (draft or submitted). */
+  /** Submitted report id. Null while the report is still a draft. */
   reportId?: string | null;
+  /** Expert-only: draft report `_id` while `isDraft` is true. */
+  draftReportId?: string | null;
   report?: BackendReport | string | null;
 };
 

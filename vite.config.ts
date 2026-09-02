@@ -14,6 +14,13 @@ function applyServerEnv(env: Record<string, string>): void {
 }
 
 export default defineConfig(({ mode }) => {
+  // Vite's loadEnv never overwrites existing process.env. An in-process
+  // restart (e.g. after editing .env.local) would otherwise keep the first
+  // API_BASE_URL. Clear these so the env files are the source of truth.
+  delete process.env.API_BASE_URL;
+  delete process.env.EXPERT_API_BASE_URL;
+  delete process.env.SOCKET_URL;
+
   applyServerEnv(loadEnv(mode, rootDir, ""));
 
   const apiMiddleware = createExpertApiMiddleware();

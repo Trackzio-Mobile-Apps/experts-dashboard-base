@@ -24,12 +24,14 @@ const OFFER_TOAST_DEDUPE_MS = 60_000;
 
 type OfferedListener = (payload: ExpertSocketEventPayload) => void;
 type DeadlineMissedListener = (payload: ExpertSocketEventPayload) => void;
+type InboxSyncListener = () => void;
 
 type ExpertSocketContextValue = {
   connectionState: ExpertSocketConnectionState;
   isSocketConnected: boolean;
   subscribeOffered: (listener: OfferedListener) => () => void;
   subscribeDeadlineMissed: (listener: DeadlineMissedListener) => () => void;
+  subscribeInboxSync: (listener: InboxSyncListener) => () => void;
 };
 
 const ExpertSocketContext = createContext<ExpertSocketContextValue | null>(null);
@@ -43,6 +45,7 @@ export function ExpertSocketProvider({ children }: { children: ReactNode }) {
   const refreshRef = useRef(refresh);
   const offeredListenersRef = useRef(new Set<OfferedListener>());
   const deadlineMissedListenersRef = useRef(new Set<DeadlineMissedListener>());
+  const inboxSyncListenersRef = useRef(new Set<InboxSyncListener>());
   const recentOfferToastsRef = useRef(new Map<string, number>());
   const handlersRef = useRef<ExpertSocketHandlers>({
     onConnectionStateChange: setConnectionState,
@@ -81,6 +84,12 @@ export function ExpertSocketProvider({ children }: { children: ReactNode }) {
     [],
   );
 
+  const notifyInboxSync = useCallback(() => {
+    for (const listener of inboxSyncListenersRef.current) {
+      listener();
+    }
+  }, []);
+
   useEffect(() => {
     handlersRef.current = {
       onConnectionStateChange: setConnectionState,
@@ -88,22 +97,26 @@ export function ExpertSocketProvider({ children }: { children: ReactNode }) {
         console.log("[expert-socket] refresh triggered (offers)", payload);
         void refreshRef.current({ silent: true, scope: "offers" });
         notifyOffered(payload);
+        notifyInboxSync();
       },
       onWithdrawn: (payload) => {
         console.log("[expert-socket] refresh triggered (offers)", payload);
         void refreshRef.current({ silent: true, scope: "offers" });
+        notifyInboxSync();
       },
       onAccepted: (payload) => {
         console.log("[expert-socket] refresh triggered (all)", payload);
         void refreshRef.current({ silent: true, scope: "all" });
+        notifyInboxSync();
       },
       onDeadlineMissed: (payload) => {
         console.log("[expert-socket] refresh triggered (requests)", payload);
         void refreshRef.current({ silent: true, scope: "requests" });
         notifyDeadlineMissed(payload);
+        notifyInboxSync();
       },
     };
-  }, [notifyDeadlineMissed, notifyOffered]);
+  }, [notifyDeadlineMissed, notifyInboxSync, notifyOffered]);
 
   useEffect(() => {
     if (!isInitialized || !profile?.id) {
@@ -150,14 +163,27 @@ export function ExpertSocketProvider({ children }: { children: ReactNode }) {
     [],
   );
 
+  const subscribeInboxSync = useCallback((listener: InboxSyncListener) => {
+    inboxSyncListenersRef.current.add(listener);
+    return () => {
+      inboxSyncListenersRef.current.delete(listener);
+    };
+  }, []);
+
   const value = useMemo<ExpertSocketContextValue>(
     () => ({
       connectionState,
       isSocketConnected: connectionState === "connected",
       subscribeOffered,
       subscribeDeadlineMissed,
+      subscribeInboxSync,
     }),
-    [connectionState, subscribeDeadlineMissed, subscribeOffered],
+    [
+      connectionState,
+      subscribeDeadlineMissed,
+      subscribeInboxSync,
+      subscribeOffered,
+    ],
   );
 
   return (

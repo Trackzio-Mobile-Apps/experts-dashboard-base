@@ -538,15 +538,17 @@ export function ExpertEvaluationRequestView({
           const localFilled = localForm
             ? evaluateFormProgress(localForm).filled
             : 0;
-          // Prefer whichever side has more filled fields.
+          const preferUnsavedLocal =
+            localFilled > serverFilled && Boolean(localForm);
           const nextForm = normalizeEvaluationFormState(
-            localFilled > serverFilled && localForm ? localForm : serverForm,
+            preferUnsavedLocal && localForm ? localForm : serverForm,
           );
           setForm(nextForm);
-          setLastSavedFormJson(JSON.stringify(nextForm));
+          // Server snapshot is the persisted baseline; extra local fields stay unsaved.
+          setLastSavedFormJson(JSON.stringify(serverForm));
           saveEvaluationDraft(detail.requestId, nextForm);
           adoptReportId(report._id);
-          setDraftSaveState("saved");
+          setDraftSaveState(preferUnsavedLocal ? "idle" : "saved");
         } else if (report) {
           // Already submitted — keep id so later writes use PUT, not POST.
           adoptReportId(report._id);

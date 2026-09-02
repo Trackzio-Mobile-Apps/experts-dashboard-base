@@ -14,11 +14,8 @@ export {
 export { formatExpiredRequestToastMessage, EXPIRED_REQUEST_DETAIL_MESSAGE } from "@/lib/expert/expiredRequestNotifications/messages";
 
 /**
- * Backend limitations (FE cannot fix without API support):
- * 1. BE must flip status to `deadline_missed` / `expired` so History lists the request.
- * 2. Cross-device / cross-browser unseen expiry needs a server notification store.
- * 3. If an expiry never appears in `acceptedRequests` or `requests` after login,
- *    the FE cannot invent a notification from missing data.
+ * Detection still uses accepted/history REST lists for same-session expiry.
+ * Cross-device unseen offer / deadline events come from `GET /experts/me/inbox`.
  */
 export {
   collectExpiredRequestNotifications,

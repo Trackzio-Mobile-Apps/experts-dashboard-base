@@ -12,8 +12,9 @@ import { normalizeMongoId } from "@/lib/expert/format";
 import {
   contentFieldsToFormState,
   formToContentFields,
+  resolveReportCoinTitle,
 } from "@/lib/expert/reportContentFields";
-import { getAcceptedRequests } from "@/lib/expert/requestsService";
+import { getExpertRequests } from "@/lib/expert/requestsService";
 import type {
   BackendReport,
   BackendRequest,
@@ -42,21 +43,20 @@ function reportIdFromUnknown(value: unknown): string | null {
   return null;
 }
 
-function minimalDraftContentFields(): Partial<ReportContentFields> {
-  return {};
-}
-
 export class ExpertReportsError extends Error {
+  existingReport?: BackendReport;
+
   constructor(
     message: string,
     public readonly status: number,
+    existingReport?: BackendReport,
   ) {
     super(message);
     this.name = "ExpertReportsError";
+    this.existingReport = existingReport;
   }
 }
 
-/** Attachment shape stored on the report (URL references to request media). */
 export type ReportAttachment = {
   url: string;
   kind: "image" | "video";
@@ -69,6 +69,7 @@ export type ReportWritePayload = {
   contentFields: Partial<ReportContentFields>;
   attachments?: ReportAttachment[];
   isDraft: boolean;
+  coinTitle?: string;
 };
 
 type ReportMutationApiData = {
@@ -76,10 +77,6 @@ type ReportMutationApiData = {
   request?: BackendRequest;
 };
 
-/**
- * Build report attachments from the request's image/video URLs.
- * Backend accepts Mixed[] — we send structured URL objects.
- */
 export function mediaToReportAttachments(
   media: RequestMediaItem[],
 ): ReportAttachment[] {
@@ -111,20 +108,9 @@ export function mediaToReportAttachments(
   return attachments;
 }
 
-/** Map API report into the evaluation form shape (prefers `contentFields`). */
 export function reportToFormState(report: BackendReport): EvaluationFormState {
   return normalizeEvaluationFormState(
     contentFieldsToFormState(report.contentFields, report.content),
-  );
-}
-
-/** @deprecated Use `reportToFormState` — kept for callers passing raw content only. */
-export function reportContentToFormState(
-  content: unknown,
-  contentFields?: ReportContentFields | null,
-): EvaluationFormState {
-  return normalizeEvaluationFormState(
-    contentFieldsToFormState(contentFields, content),
   );
 }
 
@@ -143,43 +129,32 @@ function rememberReportId(requestId: string, report: BackendReport): string | nu
   return id;
 }
 
-/**
- * Resolve an existing report id for a request (local → accepted requests API).
- * Needed because POST create is one-shot and list payloads may omit reportId briefly.
- */
 export async function lookupReportIdForRequest(
   requestId: string,
 ): Promise<string | null> {
   const normalizedRequestId = normalizeMongoId(requestId);
   if (!normalizedRequestId) return null;
 
-  const fromLocal = normalizeMongoId(
-    loadEvaluationDraftReportId(normalizedRequestId) ?? "",
-  );
-  if (fromLocal) return fromLocal;
-
   try {
-    const accepted = await getAcceptedRequests();
-    const match = accepted.find(
+    const requests = await getExpertRequests();
+    const match = requests.find(
       (request) => normalizeMongoId(request._id) === normalizedRequestId,
     );
-    if (!match) return null;
-    const fromRequest = extractReportIdFromRequest(match);
+    const fromRequest = match ? extractReportIdFromRequest(match) : null;
     if (fromRequest) {
       saveEvaluationDraftReportId(normalizedRequestId, fromRequest);
       return fromRequest;
     }
   } catch {
-    // best-effort lookup
+    // fall through to local cache
   }
 
-  return null;
+  const fromLocal = normalizeMongoId(
+    loadEvaluationDraftReportId(normalizedRequestId) ?? "",
+  );
+  return fromLocal || null;
 }
 
-/**
- * Create a report. Defaults to draft unless `isDraft: false`.
- * `POST /experts/reports`
- */
 export async function createReport(
   requestId: string,
   options: ReportWritePayload,
@@ -196,14 +171,23 @@ export async function createReport(
       contentFields: options.contentFields,
       attachments: options.attachments ?? [],
       isDraft: options.isDraft,
+      ...(options.coinTitle ? { coinTitle: options.coinTitle } : {}),
     },
     { skipAuthHandling: true },
   );
 
-  // Idempotent create: backend may 409 with the existing report attached.
-  if (envelope.data?.report && (!envelope.error || status === 409)) {
+  if (status === 201 && envelope.data?.report) {
     rememberReportId(normalizedRequestId, envelope.data.report);
     return envelope.data;
+  }
+
+  if (status === 409 && envelope.data?.report) {
+    rememberReportId(normalizedRequestId, envelope.data.report);
+    throw new ExpertReportsError(
+      envelope.message || "Report already exists for this request",
+      409,
+      envelope.data.report,
+    );
   }
 
   throw new ExpertReportsError(
@@ -215,10 +199,6 @@ export async function createReport(
   );
 }
 
-/**
- * Update an expert-owned draft. Set `isDraft: false` to submit.
- * `PUT /experts/reports/:id`
- */
 export async function updateReport(
   reportId: string,
   options: Partial<ReportWritePayload> & { requestId?: string },
@@ -236,6 +216,7 @@ export async function updateReport(
     body.attachments = options.attachments;
   }
   if (options.isDraft !== undefined) body.isDraft = options.isDraft;
+  if (options.coinTitle) body.coinTitle = options.coinTitle;
 
   const { status, envelope } = await apiClient.put<ReportMutationApiData>(
     `/experts/reports/${encodeURIComponent(normalizedReportId)}`,
@@ -258,11 +239,6 @@ export async function updateReport(
   return envelope.data;
 }
 
-/**
- * Save/update a server draft for an accepted request.
- * Creates via POST when no draft id yet; otherwise PUT.
- * Recovers when a report already exists but the client lost its id.
- */
 export async function saveDraftReport(opts: {
   requestId: string;
   reportId?: string | null;
@@ -271,53 +247,48 @@ export async function saveDraftReport(opts: {
   attachments?: ReportAttachment[];
 }): Promise<BackendReport> {
   const attachments = opts.attachments ?? [];
-  const hasFormContent = evaluateFormProgress(opts.form).filled > 0;
-  const contentFields = hasFormContent
-    ? formToContentFields(opts.form)
-    : minimalDraftContentFields();
+  const coinTitle = resolveReportCoinTitle(opts.form, opts.coinName);
+  const contentFields = formToContentFields(opts.form);
+  if (!contentFields.generalInfo.coinName.trim()) {
+    contentFields.generalInfo.coinName = coinTitle;
+  }
 
   let reportId = opts.reportId ? normalizeMongoId(opts.reportId) : null;
   if (!reportId) {
     reportId = await lookupReportIdForRequest(opts.requestId);
   }
 
-  if (reportId) {
-    const data = await updateReport(reportId, {
-      requestId: opts.requestId,
-      contentFields,
-      attachments,
-      isDraft: true,
-    });
-    return data.report;
+  if (!reportId) {
+    try {
+      const data = await createReport(opts.requestId, {
+        contentFields,
+        attachments,
+        isDraft: true,
+        coinTitle,
+      });
+      return data.report;
+    } catch (err) {
+      if (!(err instanceof ExpertReportsError && err.status === 409)) {
+        throw err;
+      }
+      reportId =
+        (err.existingReport
+          ? normalizeMongoId(err.existingReport._id)
+          : "") || (await lookupReportIdForRequest(opts.requestId));
+      if (!reportId) throw err;
+    }
   }
 
-  try {
-    const data = await createReport(opts.requestId, {
-      contentFields,
-      attachments,
-      isDraft: true,
-    });
-    return data.report;
-  } catch (err) {
-    if (!(err instanceof ExpertReportsError && (err.status === 409 || err.status === 400))) {
-      throw err;
-    }
-    const existingId = await lookupReportIdForRequest(opts.requestId);
-    if (!existingId) throw err;
-    const data = await updateReport(existingId, {
-      requestId: opts.requestId,
-      contentFields,
-      attachments,
-      isDraft: true,
-    });
-    return data.report;
-  }
+  const data = await updateReport(reportId, {
+    requestId: opts.requestId,
+    contentFields,
+    attachments,
+    isDraft: true,
+    coinTitle,
+  });
+  return data.report;
 }
 
-/**
- * Ensure a server draft exists for an accepted request.
- * Creates via POST when no report id is known; otherwise GET/PUT.
- */
 export async function ensureDraftReport(opts: {
   requestId: string;
   reportId?: string | null;
@@ -357,10 +328,6 @@ export async function ensureDraftReport(opts: {
   });
 }
 
-/**
- * Final submit: completes the request. Always sends `isDraft: false`.
- * Uses PUT when a draft id exists, otherwise POST.
- */
 export async function submitReport(
   requestId: string,
   options: {
@@ -371,6 +338,7 @@ export async function submitReport(
 ) {
   const attachments = options.attachments ?? [];
   const contentFields = formToContentFields(options.form);
+  const coinTitle = resolveReportCoinTitle(options.form);
 
   let reportId = options.reportId ? normalizeMongoId(options.reportId) : null;
   if (!reportId) {
@@ -384,6 +352,7 @@ export async function submitReport(
         contentFields,
         attachments,
         isDraft: false,
+        coinTitle,
       });
     } catch (err) {
       if (!(err instanceof ExpertReportsError && err.status === 404)) {
@@ -397,23 +366,26 @@ export async function submitReport(
       contentFields,
       attachments,
       isDraft: false,
+      coinTitle,
     });
   } catch (err) {
     if (!(err instanceof ExpertReportsError && err.status === 409)) {
       throw err;
     }
-    const existingId = await lookupReportIdForRequest(requestId);
+    const existingId =
+      (err.existingReport ? normalizeMongoId(err.existingReport._id) : "") ||
+      (await lookupReportIdForRequest(requestId));
     if (!existingId) throw err;
     return await updateReport(existingId, {
       requestId,
       contentFields,
       attachments,
       isDraft: false,
+      coinTitle,
     });
   }
 }
 
-/** `GET /experts/reports/:id` — full report with `contentFields`. */
 export async function getReport(reportId: string) {
   const normalizedReportId = normalizeMongoId(reportId);
   if (!normalizedReportId) {
@@ -435,18 +407,20 @@ export async function getReport(reportId: string) {
   return envelope.data.report;
 }
 
-/** `reportId` from `GET /experts/me/requests` (canonical link to the report). */
 export function extractReportIdFromRequest(
   request: BackendRequest,
 ): string | null {
-  const fromApi = normalizeMongoId(request.reportId);
-  if (fromApi) return fromApi;
+  const fromSubmitted = normalizeMongoId(request.reportId);
+  if (fromSubmitted) return fromSubmitted;
+
+  const fromDraft = normalizeMongoId(request.draftReportId);
+  if (fromDraft) return fromDraft;
 
   const embedded = reportIdFromUnknown(request.report);
   if (embedded) return embedded;
 
   const payload = asRecord(request.payload);
-  for (const key of ["reportId", "report_id", "expertReportId", "report"]) {
+  for (const key of ["reportId", "report_id", "expertReportId", "draftReportId", "report"]) {
     const fromPayload = reportIdFromUnknown(payload[key]);
     if (fromPayload) return fromPayload;
   }
@@ -474,10 +448,6 @@ function resolveReportIdForRequest(
   return null;
 }
 
-/**
- * Load a report for a request using `GET /experts/reports/:id`.
- * Uses `reportId` from the backend request payload only.
- */
 export async function getReportForRequest(
   requestId: string,
   options?: ReportForRequestOptions,
@@ -485,7 +455,9 @@ export async function getReportForRequest(
   const normalizedRequestId = normalizeMongoId(requestId);
   if (!normalizedRequestId) return null;
 
-  const apiReportId = resolveReportIdForRequest(options);
+  const apiReportId =
+    resolveReportIdForRequest(options) ||
+    (await lookupReportIdForRequest(normalizedRequestId));
   if (!apiReportId) return null;
 
   try {
@@ -541,7 +513,6 @@ export async function resolveReport(
   );
 }
 
-/** Progress % from a server report. */
 export function reportProgressPercent(report: BackendReport): number {
   const form = reportToFormState(report);
   return evaluateFormProgress(form).percent;
