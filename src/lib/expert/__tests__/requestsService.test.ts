@@ -34,6 +34,14 @@ describe("buildExpertRequestsSearch", () => {
 describe("historyPeriodRequestsQuery", () => {
   const nowMs = Date.parse("2026-09-08T12:00:00.000Z");
 
+  it("uses calendar-month createdAfter/createdBefore for this month", () => {
+    const query = historyPeriodRequestsQuery("thisMonth", nowMs);
+    const range = lastCalendarMonthRange(nowMs);
+    expect(query.statuses).toEqual(["completed", "report_submitted"]);
+    expect(query.createdAfter).toBe(range.createdAfter);
+    expect(query.createdBefore).toBe(range.createdBefore);
+  });
+
   it("uses last 30 days createdAfter for the month tab", () => {
     const query = historyPeriodRequestsQuery("month", nowMs);
     expect(query.statuses).toEqual(["completed", "report_submitted"]);

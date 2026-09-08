@@ -1,4 +1,4 @@
-import { appEnv, themeConfig } from "@/config";
+import { appEnv, themeConfig, STORAGE_KEYS } from "@/config";
 import {
   authenticityAssessmentTheme,
   authenticitySummaryTheme,
@@ -32,6 +32,7 @@ import {
   type EvaluationReportSection,
 } from "@/lib/expert/evaluationReportView";
 import type { RequestMediaItem } from "@/lib/expert/types";
+import { isUnusableMediaUrl } from "@/lib/expert/mediaUrls";
 
 function escapeHtml(value: string): string {
   return value
@@ -43,6 +44,7 @@ function escapeHtml(value: string): string {
 
 const REPORT_LOGO_PATH = themeConfig.brand.logoSrc;
 const REPORT_MEDIA_PROXY_PATH = "/api/expert/media";
+const MEDIA_FETCH_TIMEOUT_MS = 8_000;
 const t = EVALUATION_REPORT_TOKENS;
 const c = t.colors;
 const p = t.pdf;
@@ -80,21 +82,38 @@ async function ensureReportFontsLoaded(doc: Document = document): Promise<void> 
 
 function reportMediaFetchUrl(url: string): string {
   const trimmed = url.trim();
-  if (!trimmed) return trimmed;
+  if (!trimmed || isUnusableMediaUrl(trimmed)) return "";
   if (trimmed.startsWith("/")) return trimmed;
   if (trimmed.startsWith("data:")) return trimmed;
-  if (appEnv.apiBaseUrl) return trimmed;
   return `${REPORT_MEDIA_PROXY_PATH}?url=${encodeURIComponent(trimmed)}`;
 }
 
+function readStoredJwt(): string {
+  if (typeof window === "undefined") return "";
+  return sessionStorage.getItem(STORAGE_KEYS.jwt)?.trim() ?? "";
+}
+
 async function urlToDataUrl(url: string): Promise<string | null> {
+  if (isUnusableMediaUrl(url)) return null;
   const fetchUrl = reportMediaFetchUrl(url);
   if (!fetchUrl) return null;
 
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), MEDIA_FETCH_TIMEOUT_MS);
+
   try {
-    const response = await fetch(fetchUrl);
+    const token = readStoredJwt();
+    const headers: Record<string, string> = {};
+    if (token) headers.Authorization = `Bearer ${token}`;
+
+    const response = await fetch(fetchUrl, {
+      signal: controller.signal,
+      credentials: appEnv.apiBaseUrl ? "omit" : "include",
+      headers,
+    });
     if (!response.ok) return null;
     const blob = await response.blob();
+    if (!blob.size) return null;
     return await new Promise<string | null>((resolve) => {
       const reader = new FileReader();
       reader.onload = () => {
@@ -105,6 +124,8 @@ async function urlToDataUrl(url: string): Promise<string | null> {
     });
   } catch {
     return null;
+  } finally {
+    window.clearTimeout(timer);
   }
 }
 
@@ -114,14 +135,14 @@ async function inlineReportMediaUrls(
   const cache = new Map<string, string>();
   const urls = new Set<string>();
 
-  if (report.expert?.profilePicture) {
+  if (report.expert?.profilePicture && !isUnusableMediaUrl(report.expert.profilePicture)) {
     urls.add(report.expert.profilePicture);
   }
   for (const item of reportGalleryMedia(report.media)) {
-    urls.add(item.src);
+    if (!isUnusableMediaUrl(item.src)) urls.add(item.src);
   }
   for (const item of report.media) {
-    if (item.kind === "video" && item.poster?.trim()) {
+    if (item.kind === "video" && item.poster?.trim() && !isUnusableMediaUrl(item.poster)) {
       urls.add(item.poster);
     }
   }
@@ -644,8 +665,24 @@ async function waitForElementImages(root: ParentNode): Promise<void> {
             resolve();
             return;
           }
-          image.onload = () => resolve();
-          image.onerror = () => resolve();
+          let settled = false;
+          const finish = () => {
+            if (settled) return;
+            settled = true;
+            window.clearTimeout(timer);
+            image.onload = null;
+            image.onerror = null;
+            resolve();
+          };
+          const timer = window.setTimeout(() => {
+            image.src = TRANSPARENT_PIXEL_DATA_URL;
+            finish();
+          }, MEDIA_FETCH_TIMEOUT_MS);
+          image.onload = () => finish();
+          image.onerror = () => {
+            image.src = TRANSPARENT_PIXEL_DATA_URL;
+            finish();
+          };
         }),
     ),
   );
@@ -693,6 +730,11 @@ async function inlineImagesInRoot(
     images.map(async (image) => {
       const src = image.getAttribute("src");
       if (!src || src.startsWith("data:")) return;
+      if (isUnusableMediaUrl(src)) {
+        image.removeAttribute("crossorigin");
+        image.setAttribute("src", TRANSPARENT_PIXEL_DATA_URL);
+        return;
+      }
 
       let resolved = resolveMediaUrl(src);
       if (!resolved.startsWith("data:")) {
@@ -891,24 +933,31 @@ async function renderReportPageCanvas(
 
   view?.scrollTo(0, 0);
 
-  const canvas = await toCanvas(page, {
-    width,
-    height,
-    canvasWidth: width * scale,
-    canvasHeight: height * scale,
-    pixelRatio: 1,
-    skipAutoScale: true,
-    backgroundColor: c.canvas,
-    cacheBust: true,
-    skipFonts: true,
-    style: {
-      boxShadow: "none",
-      borderRadius: "0",
-      margin: "0",
-    },
-    filter: (node) => !(node instanceof HTMLIFrameElement),
-    onImageErrorHandler: () => undefined,
-  });
+  const canvas = await Promise.race([
+    toCanvas(page, {
+      width,
+      height,
+      canvasWidth: width * scale,
+      canvasHeight: height * scale,
+      pixelRatio: 1,
+      skipAutoScale: true,
+      backgroundColor: c.canvas,
+      cacheBust: false,
+      skipFonts: true,
+      style: {
+        boxShadow: "none",
+        borderRadius: "0",
+        margin: "0",
+      },
+      filter: (node) => !(node instanceof HTMLIFrameElement),
+      onImageErrorHandler: () => undefined,
+    }),
+    new Promise<never>((_, reject) => {
+      window.setTimeout(() => {
+        reject(new Error("Report page capture timed out."));
+      }, 20_000);
+    }),
+  ]);
 
   if (canvas.width === 0 || canvas.height === 0) {
     throw new Error("Report page capture produced an empty canvas.");

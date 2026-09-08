@@ -9,7 +9,11 @@ const rootDir = path.dirname(fileURLToPath(import.meta.url));
 function applyServerEnv(env: Record<string, string>): void {
   process.env.API_BASE_URL =
     env.API_BASE_URL || env.EXPERT_API_BASE_URL || process.env.API_BASE_URL || "";
-  process.env.SOCKET_URL = env.SOCKET_URL || process.env.SOCKET_URL || "";
+  process.env.SOCKET_URL =
+    env.SOCKET_URL ||
+    env.EXPERT_API_BASE_URL ||
+    process.env.SOCKET_URL ||
+    "";
   process.env.APP_SLUG = env.APP_SLUG || process.env.APP_SLUG || "expert";
 }
 

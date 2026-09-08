@@ -14,6 +14,7 @@ import { useExpertProfile } from "@/lib/expert/expertProfileStore";
 import {
   getExpertRequests,
   historyPeriodRequestsQuery,
+  lastCalendarMonthRange,
 } from "@/lib/expert/requestsService";
 import type { BackendRequest, HistorySummaryStats } from "@/lib/expert/types";
 import { useSearchParams } from "@/lib/router";
@@ -105,13 +106,21 @@ export function ExpertHistoryPageClient() {
   const summary = useMemo<HistorySummaryStats>(() => {
     const completed = requests.filter(
       (r) => r.status === "completed" || r.status === "report_submitted",
-    ).length;
+    );
+    const { createdAfter, createdBefore } = lastCalendarMonthRange();
+    const completedThisMonth = completed.filter((r) => {
+      const raw = r.completedAt ?? r.submittedAt ?? r.createdAt;
+      if (!raw) return false;
+      const t = new Date(raw).getTime();
+      return t >= createdAfter && t < createdBefore;
+    }).length;
     const totalEarnedInr =
       profile?.stats.totalEarningsInr && profile.stats.totalEarningsInr > 0
         ? profile.stats.totalEarningsInr
         : null;
     return {
-      totalCompleted: completed,
+      totalCompleted: completed.length,
+      completedThisMonth,
       avgTurnaround: formatAvgTurnaround(
         profile?.stats.avgCompletionHours ?? null,
       ),

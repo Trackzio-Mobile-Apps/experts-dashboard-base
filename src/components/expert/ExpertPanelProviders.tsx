@@ -3,6 +3,7 @@ import { ExpertDeadlineExceededToastGate } from "@/components/expert/ExpertDeadl
 import { ExpertEvaluationDueSoonGate } from "@/components/expert/ExpertEvaluationDueSoonGate";
 import { ExpertInboxToastGate } from "@/components/expert/ExpertInboxToastGate";
 import { ExpertNewRequestToastGate } from "@/components/expert/ExpertNewRequestToastGate";
+import { ExpertSubmitSuccessToastGate } from "@/components/expert/ExpertSubmitSuccessToastGate";
 import { ExpertProfileInitializer } from "@/components/expert/ExpertProfileInitializer";
 import { ExpertInboxProvider } from "@/lib/expert/expertInboxStore";
 import { ExpertPanelDataProvider } from "@/lib/expert/expertPanelDataStore";
@@ -20,6 +21,7 @@ export function ExpertPanelProviders({ children }: { children: ReactNode }) {
             <ExpertAvailabilityPromptGate />
             <ExpertEvaluationDueSoonGate />
             <ExpertNewRequestToastGate />
+            <ExpertSubmitSuccessToastGate />
             <ExpertDeadlineExceededToastGate />
             <ExpertInboxToastGate />
             {children}

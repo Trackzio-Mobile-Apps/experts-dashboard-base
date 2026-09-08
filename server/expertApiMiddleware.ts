@@ -4,9 +4,11 @@ import {
   API_UNAVAILABLE_MESSAGE,
   cookieHeader,
   COUNTRIES_API_URL,
+  fetchRemoteMedia,
   getApiBaseUrl,
   getJwtCookieName,
   getSocketUrl,
+  hasExpertMediaAuth,
   isAllowedMediaUrl,
   parseCookies,
 } from "../api/_lib/expertBackend";
@@ -128,8 +130,7 @@ async function handleMedia(
   res: ServerResponse,
   urlObj: URL,
 ): Promise<boolean> {
-  const cookies = parseCookies(req.headers.cookie);
-  if (!cookies[getJwtCookieName()]) {
+  if (!hasExpertMediaAuth(req.headers.cookie, req.headers.authorization)) {
     sendJson(res, 401, { error: true, message: "Unauthorized." });
     return true;
   }
@@ -154,7 +155,7 @@ async function handleMedia(
   }
 
   try {
-    const upstream = await fetch(target.toString(), { cache: "no-store" });
+    const upstream = await fetchRemoteMedia(target.toString());
     if (!upstream.ok) {
       sendJson(res, 502, { error: true, message: "Unable to fetch media." });
       return true;

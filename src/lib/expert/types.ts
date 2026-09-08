@@ -296,6 +296,11 @@ export type ExpertReportApiData = {
   report: BackendReport;
 };
 
+export type ExpertReportsListApiData = {
+  reports?: BackendReport[];
+  items?: BackendReport[];
+};
+
 export type ExpertNavCounts = {
   queue: number;
   drafts: number;
@@ -362,6 +367,7 @@ export type HistoryRow = {
 
 export type HistorySummaryStats = {
   totalCompleted: number;
+  completedThisMonth: number;
   avgTurnaround: string;
   totalEarnedInr: number | null;
   earnedThisMonthInr: number | null;

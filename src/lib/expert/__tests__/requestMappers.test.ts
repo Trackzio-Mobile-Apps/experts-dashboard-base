@@ -360,8 +360,8 @@ describe("parseRequestPayload video posters", () => {
     const { media } = parseRequestPayload({
       coinName: "Test coin",
       media: {
-        obverse: ["https://cdn.example.com/obverse.jpg"],
-        video: ["https://cdn.example.com/blank.mp4"],
+        obverse: ["https://cdn.coinzy.app/obverse.jpg"],
+        video: ["https://cdn.coinzy.app/blank.mp4"],
       },
     });
 
@@ -374,11 +374,11 @@ describe("parseRequestPayload video posters", () => {
     const { media } = parseRequestPayload({
       coinName: "Test coin",
       media: {
-        obverse: ["https://cdn.example.com/obverse.jpg"],
+        obverse: ["https://cdn.coinzy.app/obverse.jpg"],
         video: [
           {
-            src: "https://cdn.example.com/coin.mp4",
-            poster: "https://cdn.example.com/video-frame.jpg",
+            src: "https://cdn.coinzy.app/coin.mp4",
+            poster: "https://cdn.coinzy.app/video-frame.jpg",
           },
         ],
       },
@@ -386,6 +386,21 @@ describe("parseRequestPayload video posters", () => {
 
     const video = media.find((item) => item.kind === "video");
     expect(video?.kind).toBe("video");
-    expect(video?.poster).toBe("https://cdn.example.com/video-frame.jpg");
+    expect(video?.poster).toBe("https://cdn.coinzy.app/video-frame.jpg");
+  });
+
+  it("drops dummy example.com seed media so PDF export is not blocked", () => {
+    const { media } = parseRequestPayload({
+      coinName: "Test coin",
+      media: {
+        obverse: ["https://media.example.com/coinzy/uploads/dummy-obverse.jpg"],
+        reverse: ["https://media.example.com/coinzy/uploads/dummy-reverse.jpg"],
+        edge: ["https://cdn.coinzy.app/edge.jpg"],
+      },
+    });
+
+    expect(media.map((item) => item.src)).toEqual([
+      "https://cdn.coinzy.app/edge.jpg",
+    ]);
   });
 });

@@ -53,6 +53,15 @@ export function historyPeriodRequestsQuery(
   period: HistoryPeriodFilter,
   nowMs = Date.now(),
 ): GetExpertRequestsQuery {
+  if (period === "thisMonth") {
+    const range = lastCalendarMonthRange(nowMs);
+    return {
+      statuses: [...HISTORY_COMPLETED_STATUSES],
+      createdAfter: range.createdAfter,
+      createdBefore: range.createdBefore,
+    };
+  }
+
   if (period === "month") {
     return {
       statuses: [...HISTORY_COMPLETED_STATUSES],

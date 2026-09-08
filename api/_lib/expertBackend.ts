@@ -87,14 +87,51 @@ export function isPrivateHost(hostname: string): boolean {
   return false;
 }
 
+export function isPlaceholderMediaHost(hostname: string): boolean {
+  const host = hostname.toLowerCase();
+  return (
+    host === "example.com" ||
+    host.endsWith(".example.com") ||
+    host === "example.net" ||
+    host.endsWith(".example.net") ||
+    host === "example.org" ||
+    host.endsWith(".example.org")
+  );
+}
+
 export function isAllowedMediaUrl(url: URL): boolean {
   if (url.protocol !== "https:" && url.protocol !== "http:") {
     return false;
   }
-  if (isPrivateHost(url.hostname)) {
+  if (isPrivateHost(url.hostname) || isPlaceholderMediaHost(url.hostname)) {
     return false;
   }
   return true;
+}
+
+export function hasExpertMediaAuth(
+  cookieHeader: string | undefined,
+  authorization: string | string[] | undefined,
+): boolean {
+  const cookies = parseCookies(cookieHeader);
+  if (cookies[getJwtCookieName()]) return true;
+
+  const header = Array.isArray(authorization) ? authorization[0] : authorization;
+  if (typeof header !== "string") return false;
+  return /^Bearer\s+\S+/i.test(header.trim());
+}
+
+export async function fetchRemoteMedia(
+  url: string,
+  timeoutMs = 8_000,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { cache: "no-store", signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 export const API_UNAVAILABLE_MESSAGE =

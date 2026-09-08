@@ -301,14 +301,22 @@ export function formatQueueDeadlineLabel(
   return formatQueueDeadlineDays(deadlineDays);
 }
 
-export type HistoryPeriodFilter = "all" | "month" | "quarter";
+export type HistoryPeriodFilter = "all" | "thisMonth" | "month" | "quarter";
 
 export function parseHistoryPeriod(
   raw: string | string[] | undefined,
 ): HistoryPeriodFilter {
   const v = Array.isArray(raw) ? raw[0] : raw;
+  if (v === "thisMonth" || v === "this-month") return "thisMonth";
   if (v === "month" || v === "quarter") return v;
   return "all";
+}
+
+export function formatHistoryMonthHint(nowMs = Date.now()): string {
+  return new Date(nowMs).toLocaleString("en-US", {
+    month: "short",
+    year: "numeric",
+  });
 }
 
 export function parseHistoryReportParam(
@@ -358,6 +366,12 @@ export function isWithinHistoryPeriod(
   const date = new Date(isoDate);
   if (Number.isNaN(date.getTime())) return false;
   const now = new Date();
+  if (period === "thisMonth") {
+    const start = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+    const end = new Date(now.getFullYear(), now.getMonth() + 1, 1).getTime();
+    const t = date.getTime();
+    return t >= start && t < end;
+  }
   const diffDays = (now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24);
   if (period === "month") return diffDays <= 31;
   return diffDays <= 92;

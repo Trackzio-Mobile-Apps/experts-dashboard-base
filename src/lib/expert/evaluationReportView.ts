@@ -10,6 +10,7 @@ import {
 } from "@/lib/expert/format";
 import { contentFieldsToFormState } from "@/lib/expert/reportContentFields";
 import { mediaFromReportSources } from "@/lib/expert/requestMappers";
+import { isUnusableMediaUrl } from "@/lib/expert/mediaUrls";
 import type {
   BackendReport,
   EvaluationFormState,
@@ -409,10 +410,10 @@ export function reportGalleryMedia(
   const items: RequestMediaItem[] = [];
   for (const item of media) {
     if (item.kind === "image") {
-      items.push(item);
+      if (!isUnusableMediaUrl(item.src)) items.push(item);
       continue;
     }
-    if (item.poster?.trim()) {
+    if (item.poster?.trim() && !isUnusableMediaUrl(item.poster)) {
       items.push({ ...item, kind: "image", src: item.poster });
     }
   }

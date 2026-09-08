@@ -14,8 +14,6 @@ import {
 } from "@/lib/expert/evaluationFormValidation";
 import {
   clearEvaluationDraft,
-  loadEvaluationDraft,
-  loadEvaluationDraftReportId,
   saveEvaluationDraft,
   saveEvaluationDraftReportId,
 } from "@/lib/expert/evaluationDraftStorage";
@@ -31,10 +29,12 @@ import {
   EXPIRED_REQUEST_DETAIL_MESSAGE,
   getExpiredRequestNotificationService,
 } from "@/lib/expert/expiredRequestNotifications";
+import { markEvaluationSubmitSuccess } from "@/lib/expert/constants";
 import { shouldOpenDeadlineExceededModal } from "@/lib/expert/deadlineExceededModal";
 import { useExpertProfile } from "@/lib/expert/expertProfileStore";
 import { useExpertSocket } from "@/lib/expert/expertSocketProvider";
 import {
+  ExpertReportsError,
   ensureDraftReport,
   getReportForRequest,
   isDraftReport,
@@ -55,12 +55,11 @@ import {
   evaluationRequestScrollGridClass,
 } from "./layout/panelLayout";
 import { EvaluationMediaLightbox } from "./EvaluationMediaLightbox";
-import { ExpertToast } from "./ExpertToast";
 import { ExpandMediaGalleryIcon } from "./ExpandMediaGalleryIcon";
 import { ExpertDeadlineExceededModal } from "./ExpertDeadlineExceededModal";
 import { ExpertLeaveWithoutSavingModal } from "./ExpertLeaveWithoutSavingModal";
 import { ExpertSubmitConfirmationModal } from "./ExpertSubmitConfirmationModal";
-import { ExpertSubmitSuccessModal } from "./ExpertSubmitSuccessModal";
+import { ExpertToast } from "./ExpertToast";
 import { MediaGroupScroller } from "./MediaGroupScroller";
 
 type ExpertEvaluationRequestViewProps = {
@@ -369,12 +368,9 @@ export function ExpertEvaluationRequestView({
   const { profile } = useExpertProfile();
   const { subscribeDeadlineMissed } = useExpertSocket();
   const formId = "expert-evaluation-form";
-  const [form, setForm] = useState<EvaluationFormState>(() => {
-    const local = loadEvaluationDraft(detail.requestId);
-    return normalizeEvaluationFormState(
-      local ?? createInitialEvaluationFormState(),
-    );
-  });
+  const [form, setForm] = useState<EvaluationFormState>(() =>
+    createInitialEvaluationFormState(),
+  );
   const [lightbox, setLightbox] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -382,11 +378,7 @@ export function ExpertEvaluationRequestView({
     const fromDetail = detail.reportId
       ? normalizeMongoId(detail.reportId)
       : "";
-    if (fromDetail) return fromDetail;
-    return (
-      normalizeMongoId(loadEvaluationDraftReportId(detail.requestId) ?? "") ||
-      null
-    );
+    return fromDetail || null;
   });
   const [draftSaveState, setDraftSaveState] = useState<
     "idle" | "saving" | "saved" | "error"
@@ -398,8 +390,6 @@ export function ExpertEvaluationRequestView({
   const [leaveModalOpen, setLeaveModalOpen] = useState(false);
   const [leaveSaving, setLeaveSaving] = useState(false);
   const [submitConfirmOpen, setSubmitConfirmOpen] = useState(false);
-  const [submitSuccessOpen, setSubmitSuccessOpen] = useState(false);
-  const [leavingAfterSubmit, setLeavingAfterSubmit] = useState(false);
   const [lastSavedFormJson, setLastSavedFormJson] = useState(() =>
     JSON.stringify(form),
   );
@@ -529,40 +519,41 @@ export function ExpertEvaluationRequestView({
     setHydrated(false);
 
     void (async () => {
+      console.log("[expert:draft] hydrate start", {
+        requestId: detail.requestId,
+        reportId: detail.reportId ?? null,
+        canSubmit: detail.canSubmit,
+      });
       try {
         const report = await getReportForRequest(detail.requestId, {
-          reportId: detail.reportId || draftReportIdRef.current,
+          reportId: detail.reportId,
         });
         if (cancelled) return;
         if (report && isDraftReport(report)) {
           const serverForm = reportToFormState(report);
-          const localForm = loadEvaluationDraft(detail.requestId);
-          const serverFilled = evaluateFormProgress(serverForm).filled;
-          const localFilled = localForm
-            ? evaluateFormProgress(localForm).filled
-            : 0;
-          const preferUnsavedLocal =
-            localFilled > serverFilled && Boolean(localForm);
-          const nextForm = normalizeEvaluationFormState(
-            preferUnsavedLocal && localForm ? localForm : serverForm,
-          );
-          setForm(nextForm);
-          // Server snapshot is the persisted baseline; extra local fields stay unsaved.
+          const progress = evaluateFormProgress(serverForm);
+          console.log("[expert:draft] hydrate loaded draft into form", {
+            reportId: report._id,
+            filled: progress.filled,
+            percent: progress.percent,
+          });
+          setForm(serverForm);
           setLastSavedFormJson(JSON.stringify(serverForm));
-          saveEvaluationDraft(detail.requestId, nextForm);
           adoptReportId(report._id);
-          setDraftSaveState(preferUnsavedLocal ? "idle" : "saved");
+          setDraftSaveState("saved");
         } else if (report) {
+          console.log("[expert:draft] hydrate found submitted report", {
+            reportId: report._id,
+          });
           // Already submitted — keep id so later writes use PUT, not POST.
           adoptReportId(report._id);
           setLastSavedFormJson(JSON.stringify(formRef.current));
         } else {
+          console.log("[expert:draft] hydrate no server draft — empty form");
           setLastSavedFormJson(JSON.stringify(formRef.current));
         }
       } catch (err) {
-        if (process.env.NODE_ENV !== "production") {
-          console.warn("[expert] draft hydrate failed", err);
-        }
+        console.warn("[expert:draft] hydrate failed", err);
       } finally {
         if (!cancelled) setHydrated(true);
       }
@@ -588,15 +579,37 @@ export function ExpertEvaluationRequestView({
 
     saveEvaluationDraft(detail.requestId, form);
 
-    const { filled } = evaluateFormProgress(form);
-    if (filled === 0) return;
+    const { filled, percent } = evaluateFormProgress(form);
+    if (filled === 0) {
+      console.log("[expert:draft] autosave skipped — no required fields filled yet", {
+        requestId: detail.requestId,
+        knownReportId: draftReportIdRef.current,
+      });
+      return;
+    }
 
     const generation = ++saveGenerationRef.current;
     setDraftSaveState("saving");
+    console.log("[expert:draft] autosave scheduled (900ms)", {
+      requestId: detail.requestId,
+      knownReportId: draftReportIdRef.current,
+      filled,
+      percent,
+      generation,
+    });
 
     const timer = window.setTimeout(() => {
       void (async () => {
-        if (submittedRef.current) return;
+        if (submittedRef.current) {
+          console.log("[expert:draft] autosave aborted — already submitted");
+          return;
+        }
+        console.log("[expert:draft] autosave firing", {
+          requestId: detail.requestId,
+          knownReportId: draftReportIdRef.current,
+          filled,
+          percent,
+        });
         try {
           const report = await saveDraftReport({
             requestId: detail.requestId,
@@ -606,17 +619,41 @@ export function ExpertEvaluationRequestView({
             attachments: mediaToReportAttachments(detail.media),
           });
           if (generation !== saveGenerationRef.current || submittedRef.current) {
+            console.log("[expert:draft] autosave ignored stale generation", {
+              generation,
+              current: saveGenerationRef.current,
+            });
             return;
           }
           adoptReportId(report._id);
+          if (!isDraftReport(report)) {
+            submittedRef.current = true;
+          }
           setLastSavedFormJson(JSON.stringify(form));
           setDraftSaveState("saved");
+          console.log("[expert:draft] autosave succeeded", {
+            reportId: report._id,
+            isDraft: isDraftReport(report),
+          });
         } catch (err) {
           if (generation !== saveGenerationRef.current) return;
-          setDraftSaveState("error");
-          if (process.env.NODE_ENV !== "production") {
-            console.warn("[expert] draft autosave failed", err);
+          const existing =
+            err instanceof ExpertReportsError ? err.existingReport : undefined;
+          if (
+            err instanceof ExpertReportsError &&
+            existing &&
+            !isDraftReport(existing)
+          ) {
+            submittedRef.current = true;
+            adoptReportId(existing._id);
+            setDraftSaveState("saved");
+            console.log("[expert:draft] autosave stopped — report already submitted", {
+              reportId: existing._id,
+            });
+            return;
           }
+          setDraftSaveState("error");
+          console.warn("[expert:draft] autosave failed", err);
         }
       })();
     }, 900);
@@ -657,7 +694,7 @@ export function ExpertEvaluationRequestView({
         attachments: mediaToReportAttachments(detail.media),
       })
         .then((report) => {
-          if (submittedRef.current) return;
+          if (submittedRef.current || !report) return;
           adoptReportId(report._id);
         })
         .catch(() => {
@@ -718,6 +755,11 @@ export function ExpertEvaluationRequestView({
     try {
       const current = formRef.current;
       saveEvaluationDraft(detail.requestId, current);
+      console.log("[expert:draft] save-as-draft / leave", {
+        requestId: detail.requestId,
+        knownReportId: draftReportIdRef.current,
+        filled: evaluateFormProgress(current).filled,
+      });
       const report = await saveDraftReport({
         requestId: detail.requestId,
         reportId: draftReportIdRef.current,
@@ -888,7 +930,8 @@ export function ExpertEvaluationRequestView({
       });
       clearEvaluationDraft(detail.requestId);
       setSubmitConfirmOpen(false);
-      setSubmitSuccessOpen(true);
+      markEvaluationSubmitSuccess();
+      await onSubmitted?.();
     } catch (err) {
       submittedRef.current = false;
       allowNavigationRef.current = false;
@@ -1069,8 +1112,7 @@ export function ExpertEvaluationRequestView({
                         ? "Saving draft…"
                         : draftSaveState === "error"
                           ? "Draft save failed — will retry"
-                          : draftSaveState === "saved" ||
-                              evaluateFormProgress(form).filled > 0
+                          : draftSaveState === "saved"
                             ? "✓ Draft saved"
                             : "✓ Auto save on"}
                   </span>
@@ -1126,20 +1168,6 @@ export function ExpertEvaluationRequestView({
           if (!submitting) setSubmitConfirmOpen(false);
         }}
         onConfirm={confirmSubmitReport}
-      />
-
-      <ExpertSubmitSuccessModal
-        open={submitSuccessOpen}
-        leaving={leavingAfterSubmit}
-        onContinue={async () => {
-          if (leavingAfterSubmit) return;
-          setLeavingAfterSubmit(true);
-          try {
-            await onSubmitted?.();
-          } catch {
-            setLeavingAfterSubmit(false);
-          }
-        }}
       />
 
       <ExpertToast

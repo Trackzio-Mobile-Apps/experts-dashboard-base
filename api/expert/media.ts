@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import {
-  getJwtCookieName,
+  fetchRemoteMedia,
+  hasExpertMediaAuth,
   isAllowedMediaUrl,
-  parseCookies,
 } from "../_lib/expertBackend";
 
 export default async function handler(
@@ -15,8 +15,7 @@ export default async function handler(
       .json({ error: true, message: "Method not allowed." });
   }
 
-  const cookies = parseCookies(req.headers.cookie);
-  if (!cookies[getJwtCookieName()]) {
+  if (!hasExpertMediaAuth(req.headers.cookie, req.headers.authorization)) {
     return res.status(401).json({ error: true, message: "Unauthorized." });
   }
 
@@ -37,7 +36,7 @@ export default async function handler(
   }
 
   try {
-    const upstream = await fetch(target.toString(), { cache: "no-store" });
+    const upstream = await fetchRemoteMedia(target.toString());
     if (!upstream.ok) {
       return res
         .status(502)

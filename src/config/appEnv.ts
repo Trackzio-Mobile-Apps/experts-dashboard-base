@@ -36,6 +36,7 @@ export const STORAGE_KEYS = {
   profile: storageKey("expert.profile"),
   jwt: storageKey("expert.jwt"),
   loginSuccess: storageKey("expert.loginSuccess"),
+  submitSuccess: storageKey("expert.submitSuccess"),
   accountDisabled: storageKey("expert.accountDisabled"),
   evalDraftPrefix: storageKey("expert.evalDraft."),
   evalReportIdPrefix: storageKey("expert.evalReportId."),
