@@ -123,6 +123,62 @@ describe("normalizeExpertProfile", () => {
     expect(next.yearsOfXp).toBe("12 years");
     expect(next.lastOfferedAt).toBe("2026-08-02T00:00:00.000Z");
   });
+
+  it("drops a bio that is only the expert email concatenated", () => {
+    const next = normalizeExpertProfile(
+      baseProfile({
+        email: "shreyans@trackzio.com",
+        oneLineDescription: "shreyans@trackzio.com".repeat(8),
+        expertise: [
+          "Ancient coins",
+          "shreyans@trackzio.com",
+          "testing",
+          "checking",
+        ],
+      }),
+    );
+
+    expect(next.oneLineDescription).toBeNull();
+    expect(next.expertise).toEqual(["Ancient coins", "testing", "checking"]);
+  });
+});
+
+describe("mapExpertApiToProfile sanitizes email-like bio and expertise", () => {
+  it("hides a concatenated-email oneLineDescription and filters email tags", () => {
+    const expert = {
+      _id: "6a7988e8ffcbfa84984e1001",
+      name: "Shreyans",
+      email: "shreyans@trackzio.com",
+      isInternal: false,
+      isAvailableForRequests: true,
+      supportedCountries: [],
+      status: "active",
+      activeCommittedRequestCount: 0,
+      stats: {
+        completedCount: 0,
+        missedDeadlineCount: 0,
+        avgCompletionHoursLast5: null,
+      },
+      lastAssignedAt: null,
+      lastOfferedAt: null,
+      profilePicture: null,
+      oneLineDescription: "shreyans@trackzio.com".repeat(6),
+      expertise: [
+        "Ancient coins",
+        "shreyans@trackzio.com",
+        "testing",
+        "checking",
+      ],
+      yearsOfXp: "5 years",
+      createdAt: "2026-08-10T08:16:40.553Z",
+      updatedAt: "2026-08-10T14:21:59.016Z",
+    } as BackendExpert;
+
+    const profile = mapExpertApiToProfile(expert);
+    expect(profile.oneLineDescription).toBeNull();
+    expect(profile.expertise).toEqual(["Ancient coins", "testing", "checking"]);
+    expect(profile.email).toBe("shreyans@trackzio.com");
+  });
 });
 
 describe("buildExpertFullName", () => {

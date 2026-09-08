@@ -86,7 +86,7 @@ describe("planInboxReplay", () => {
     expect(plan.markShownIds).toEqual(["1"]);
   });
 
-  it("skips live socket offers so the queue toast is not duplicated", () => {
+  it("skips live socket offers so the global live toast is not duplicated", () => {
     const plan = planInboxReplay(
       [
         item({

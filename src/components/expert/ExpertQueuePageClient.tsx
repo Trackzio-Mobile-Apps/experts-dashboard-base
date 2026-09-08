@@ -4,8 +4,6 @@ import { ExpertToast } from "@/components/expert/ExpertToast";
 import { QUEUE_PAGE_SIZE, LOGIN_SUCCESS_KEY } from "@/lib/expert/constants";
 import { clearEvaluationDraft } from "@/lib/expert/evaluationDraftStorage";
 import { useExpertPanelData } from "@/lib/expert/expertPanelDataStore";
-import { useExpertSocket } from "@/lib/expert/expertSocketProvider";
-import { useExpertQueuePolling } from "@/lib/expert/useExpertQueuePolling";
 import {
   ExpertOffersError,
   formatOfferErrorMessage,
@@ -18,30 +16,9 @@ export function ExpertQueuePageClient() {
   const searchParams = useSearchParams();
   const { queueList, isLoading, error, refresh } = useExpertPanelData();
   const [showLoginToast, setShowLoginToast] = useState(false);
-  const [showNewRequestToast, setShowNewRequestToast] = useState(false);
   const [showSkipToast, setShowSkipToast] = useState(false);
-  const [newRequestCount, setNewRequestCount] = useState(0);
   const [skippingOfferId, setSkippingOfferId] = useState<string | null>(null);
   const [skipError, setSkipError] = useState<string | null>(null);
-
-  const { subscribeOffered } = useExpertSocket();
-
-  const handleNewOffers = useCallback((count: number) => {
-    setNewRequestCount(count);
-    setShowNewRequestToast(true);
-  }, []);
-
-  useExpertQueuePolling({
-    enabled: !isLoading && !error,
-    onNewOffers: handleNewOffers,
-  });
-
-  useEffect(() => {
-    return subscribeOffered(() => {
-      setNewRequestCount(1);
-      setShowNewRequestToast(true);
-    });
-  }, [subscribeOffered]);
 
   useEffect(() => {
     if (
@@ -57,10 +34,6 @@ export function ExpertQueuePageClient() {
   }, []);
 
   const closeLoginToast = useCallback(() => setShowLoginToast(false), []);
-  const closeNewRequestToast = useCallback(
-    () => setShowNewRequestToast(false),
-    [],
-  );
   const closeSkipToast = useCallback(() => setShowSkipToast(false), []);
 
   const handleSkipOffer = useCallback(
@@ -91,11 +64,6 @@ export function ExpertQueuePageClient() {
     },
     [refresh, skippingOfferId],
   );
-
-  const newRequestMessage =
-    newRequestCount === 1
-      ? "1 new request in your queue"
-      : `${newRequestCount} new requests in your queue`;
 
   const allItems = queueList;
 
@@ -133,13 +101,6 @@ export function ExpertQueuePageClient() {
         open={showLoginToast}
         message="Login successful"
         onClose={closeLoginToast}
-      />
-      <ExpertToast
-        open={showNewRequestToast}
-        title="New request"
-        message={newRequestMessage}
-        variant="info"
-        onClose={closeNewRequestToast}
       />
       <ExpertToast
         open={showSkipToast}

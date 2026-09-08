@@ -33,7 +33,7 @@ type ExpertHistoryPageBodyProps = {
 
 const PERIOD_TABS = [
   { id: "all" as const, label: "All time" },
-  { id: "month" as const, label: "This month" },
+  { id: "month" as const, label: "Last 30 days" },
   { id: "quarter" as const, label: "Last 3 months" },
 ] as const;
 
@@ -87,7 +87,7 @@ export function ExpertHistoryPageBody({
         </div>
 
         {isLoading ? (
-          <ExpertStatCardsSkeleton count={3} columns={3} compact />
+          <ExpertStatCardsSkeleton count={2} compact />
         ) : (
           <div className="flex flex-col gap-6 sm:flex-row sm:flex-wrap">
             <SummaryCard
@@ -99,14 +99,6 @@ export function ExpertHistoryPageBody({
               label="Avg turnaround"
               value={summary.avgTurnaround}
               hint="Last 30 days"
-            />
-            <SummaryCard
-              label="Total earned"
-              value={
-                summary.totalEarnedInr == null
-                  ? "—"
-                  : formatHistoryValue(summary.totalEarnedInr)
-              }
             />
           </div>
         )}

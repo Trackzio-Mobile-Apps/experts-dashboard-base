@@ -69,7 +69,7 @@ export type ExpertLoginApiData = {
 export type BackendExpert = {
   _id: string;
   name: string;
-  email: string;
+  email: string | string[];
   isInternal: boolean;
   isAvailableForRequests: boolean;
   supportedCountries: string[];
@@ -83,7 +83,7 @@ export type BackendExpert = {
   lastAssignedAt: string | null;
   lastOfferedAt?: string | null;
   profilePicture: string | null;
-  oneLineDescription: string | null;
+  oneLineDescription?: string | string[] | null;
   /** Optional contract fields — shown when the API provides them. */
   expertise?: string[] | string | null;
   /** Live API field observed on `GET /experts/me` (e.g. `"25 years"`). */

@@ -21,6 +21,8 @@ function offerIds(offers: { _id: unknown }[]): Set<string> {
 /**
  * Fallback HTTP polling when the expert socket is disconnected.
  * Disabled automatically while Socket.IO is connected.
+ * Refreshes offers and requests so new-request and expiry toasts work
+ * on every panel screen, not only Queue.
  */
 export function useExpertQueuePolling({
   enabled,
@@ -59,7 +61,7 @@ export function useExpertQueuePolling({
     async function poll() {
       if (cancelled || document.hidden || !pollingReadyRef.current) return;
 
-      const data = await refresh({ silent: true, scope: "offers" });
+      const data = await refresh({ silent: true, scope: "all" });
       if (cancelled || !data) return;
 
       const known = knownOfferIdsRef.current ?? new Set<string>();

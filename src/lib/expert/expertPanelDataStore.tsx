@@ -56,7 +56,7 @@ type ExpertPanelRefreshResult = {
 type ExpertPanelRefreshScope = "all" | "offers" | "requests";
 
 type ExpertPanelRefreshOptions = {
-  /** Skip loading UI — for background polling on the queue home page. */
+  /** Skip loading UI — for background polling on every panel screen. */
   silent?: boolean;
   /** Which REST resources to refetch. Defaults to all. */
   scope?: ExpertPanelRefreshScope;

@@ -60,6 +60,7 @@ import { ExpandMediaGalleryIcon } from "./ExpandMediaGalleryIcon";
 import { ExpertDeadlineExceededModal } from "./ExpertDeadlineExceededModal";
 import { ExpertLeaveWithoutSavingModal } from "./ExpertLeaveWithoutSavingModal";
 import { ExpertSubmitConfirmationModal } from "./ExpertSubmitConfirmationModal";
+import { ExpertSubmitSuccessModal } from "./ExpertSubmitSuccessModal";
 import { MediaGroupScroller } from "./MediaGroupScroller";
 
 type ExpertEvaluationRequestViewProps = {
@@ -397,6 +398,8 @@ export function ExpertEvaluationRequestView({
   const [leaveModalOpen, setLeaveModalOpen] = useState(false);
   const [leaveSaving, setLeaveSaving] = useState(false);
   const [submitConfirmOpen, setSubmitConfirmOpen] = useState(false);
+  const [submitSuccessOpen, setSubmitSuccessOpen] = useState(false);
+  const [leavingAfterSubmit, setLeavingAfterSubmit] = useState(false);
   const [lastSavedFormJson, setLastSavedFormJson] = useState(() =>
     JSON.stringify(form),
   );
@@ -885,7 +888,7 @@ export function ExpertEvaluationRequestView({
       });
       clearEvaluationDraft(detail.requestId);
       setSubmitConfirmOpen(false);
-      await onSubmitted?.();
+      setSubmitSuccessOpen(true);
     } catch (err) {
       submittedRef.current = false;
       allowNavigationRef.current = false;
@@ -1123,6 +1126,20 @@ export function ExpertEvaluationRequestView({
           if (!submitting) setSubmitConfirmOpen(false);
         }}
         onConfirm={confirmSubmitReport}
+      />
+
+      <ExpertSubmitSuccessModal
+        open={submitSuccessOpen}
+        leaving={leavingAfterSubmit}
+        onContinue={async () => {
+          if (leavingAfterSubmit) return;
+          setLeavingAfterSubmit(true);
+          try {
+            await onSubmitted?.();
+          } catch {
+            setLeavingAfterSubmit(false);
+          }
+        }}
       />
 
       <ExpertToast
