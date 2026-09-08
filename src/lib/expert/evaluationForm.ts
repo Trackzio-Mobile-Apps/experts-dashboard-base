@@ -455,6 +455,31 @@ export function formatEstimatedPriceRange(
   return single ? withCode(single) : "";
 }
 
+/**
+ * PDF / report display: keep `currency` and `estimatedPriceRange` as two
+ * strings in storage, but show them together (e.g. `INR 5000 - 15000`).
+ */
+export function formatEstimatedValueDisplay(
+  range: string,
+  currency = "",
+): string {
+  const rangeText = range.trim();
+  const code = currency.trim().toUpperCase();
+  if (!rangeText) return "—";
+  if (!code) return rangeText;
+
+  const escaped = code.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const alreadyHasCode = new RegExp(`(?:^|\\b)${escaped}\\b`, "i").test(
+    rangeText,
+  );
+  const alreadyHasSymbol =
+    (code === "INR" && rangeText.includes("₹")) ||
+    (code === "USD" && /(?:US\s*)?\$/i.test(rangeText));
+
+  if (alreadyHasCode || alreadyHasSymbol) return rangeText;
+  return `${code} ${rangeText}`;
+}
+
 export function evaluateFormProgress(form: EvaluationFormState): {
   percent: number;
   filled: number;

@@ -17,7 +17,7 @@ function applyServerEnv(env: Record<string, string>): void {
   process.env.APP_SLUG = env.APP_SLUG || process.env.APP_SLUG || "expert";
 }
 
-export default defineConfig(({ mode }) => {
+export default defineConfig(({ mode, command }) => {
   // Vite's loadEnv never overwrites existing process.env. An in-process
   // restart (e.g. after editing .env.local) would otherwise keep the first
   // API_BASE_URL. Clear these so the env files are the source of truth.
@@ -80,7 +80,7 @@ export default defineConfig(({ mode }) => {
     },
     define: {
       "process.env.NODE_ENV": JSON.stringify(
-        mode === "production" ? "production" : "development",
+        command === "build" ? "production" : "development",
       ),
     },
   };

@@ -1,6 +1,7 @@
 import { themeConfig } from "@/config";
 import {
   EVALUATION_FORM_SECTIONS,
+  formatEstimatedValueDisplay,
   normalizeEvaluationFormState,
 } from "@/lib/expert/evaluationForm";
 import {
@@ -131,7 +132,10 @@ function formatExperienceYears(profile: ExpertProfile): string {
 }
 
 function formatEstimatedValue(form: EvaluationFormState): string {
-  return displayValue(form.estimatedPriceRange);
+  return formatEstimatedValueDisplay(
+    form.estimatedPriceRange ?? "",
+    form.priceCurrency ?? "",
+  );
 }
 
 function buildAuthenticityNote(form: EvaluationFormState): string {
@@ -217,7 +221,7 @@ function buildMarketSection(form: EvaluationFormState): EvaluationReportSection 
       { label: "Rarity", value: displayValue(form.rarity) },
       {
         label: "Est. Market Value",
-        value: displayValue(form.estimatedPriceRange),
+        value: formatEstimatedValue(form),
       },
     ],
   };
