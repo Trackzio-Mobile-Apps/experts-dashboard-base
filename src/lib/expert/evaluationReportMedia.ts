@@ -113,11 +113,44 @@ export function blobToDataUrl(blob: Blob): Promise<string> {
 }
 
 function isSvgMedia(type: string): boolean {
-  return /svg|xml/i.test(type);
+  return /image\/svg|\+xml/i.test(type) && !/html/i.test(type);
 }
 
 function isHeicMedia(type: string): boolean {
   return /heic|heif/i.test(type);
+}
+
+function prefixLooksLikeHtml(bytes: Uint8Array): boolean {
+  const start = new TextDecoder()
+    .decode(bytes.subarray(0, 80))
+    .trimStart()
+    .toLowerCase();
+  if (start.startsWith("<svg") || start.startsWith("<?xml")) return false;
+  return (
+    start.startsWith("<!doctype") ||
+    start.startsWith("<html") ||
+    start.startsWith("<head")
+  );
+}
+
+export function isNonImageContentType(type: string): boolean {
+  const normalized = type.toLowerCase();
+  if (!normalized || normalized.startsWith("image/") || normalized.includes("octet-stream")) {
+    return /html/i.test(normalized);
+  }
+  return /html|json|xml|javascript|text\/plain/i.test(normalized);
+}
+
+async function nonImageBlobReason(blob: Blob, headerType: string): Promise<string | null> {
+  const type = blob.type || headerType || "";
+  const prefix = new Uint8Array(await blob.slice(0, 80).arrayBuffer());
+  if (prefixLooksLikeHtml(prefix) || /html/i.test(type)) {
+    return `non-image response (${type || "text/html"})`;
+  }
+  if (isNonImageContentType(type) && !isSvgMedia(type)) {
+    return `non-image response (${type})`;
+  }
+  return null;
 }
 
 async function blobToCanvasFriendlyDataUrl(blob: Blob): Promise<string> {
@@ -155,6 +188,88 @@ async function blobToCanvasFriendlyDataUrl(blob: Blob): Promise<string> {
   return blobToDataUrl(blob);
 }
 
+type MediaFetchAttempt = {
+  fetchUrl: string;
+  init: RequestInit;
+};
+
+function mediaFetchAttempts(
+  originalUrl: string,
+  proxyUrl: string,
+): Omit<MediaFetchAttempt, "init">[] {
+  const attempts: Omit<MediaFetchAttempt, "init">[] = [];
+  const canFetchDirect =
+    originalUrl !== proxyUrl && /^https?:\/\//i.test(originalUrl);
+
+  // Browser can often load Firebase download URLs even when `/api/expert/media`
+  // returns the SPA HTML page (static hosts) or an HTML error document.
+  if (canFetchDirect) {
+    attempts.push({ fetchUrl: originalUrl });
+  }
+
+  attempts.push({ fetchUrl: proxyUrl });
+  return attempts;
+}
+
+function mediaAttemptInit(fetchUrl: string, signal: AbortSignal): RequestInit {
+  if (fetchUrl.startsWith(REPORT_MEDIA_PROXY_PATH) || fetchUrl.startsWith("/")) {
+    return getExpertMediaFetchInit(signal);
+  }
+  return {
+    method: "GET",
+    cache: "no-store",
+    credentials: "omit",
+    signal,
+  };
+}
+
+async function readMediaAttempt(
+  attempt: MediaFetchAttempt,
+  originalUrl: string,
+): Promise<FetchReportMediaResult & { blob?: Blob }> {
+  const response = await fetch(attempt.fetchUrl, attempt.init);
+  const contentType = response.headers.get("content-type") ?? "";
+  const failureBase = {
+    url: originalUrl,
+    proxyUrl: attempt.fetchUrl,
+    status: response.status,
+    contentType,
+  };
+
+  if (!response.ok) {
+    return {
+      dataUrl: null,
+      failure: { ...failureBase, reason: `HTTP ${response.status}` },
+    };
+  }
+
+  const blob = await response.blob();
+  if (!blob.size) {
+    return {
+      dataUrl: null,
+      failure: {
+        ...failureBase,
+        contentType: blob.type || contentType,
+        reason: "empty media body",
+      },
+    };
+  }
+
+  const nonImage = await nonImageBlobReason(blob, contentType);
+  if (nonImage) {
+    return {
+      dataUrl: null,
+      failure: {
+        ...failureBase,
+        contentType: blob.type || contentType,
+        reason: nonImage,
+      },
+    };
+  }
+
+  return { dataUrl: null, blob };
+}
+
 export async function fetchReportMediaAsDataUrl(
   url: string,
 ): Promise<FetchReportMediaResult> {
@@ -178,70 +293,71 @@ export async function fetchReportMediaAsDataUrl(
     };
   }
 
-  const controller = new AbortController();
-  const timer = window.setTimeout(() => controller.abort(), MEDIA_FETCH_TIMEOUT_MS);
+  const attempts = mediaFetchAttempts(originalUrl, fetchUrl);
+  let lastFailure: ReportMediaFetchFailure | undefined;
 
-  try {
-    const response = await fetch(
-      fetchUrl,
-      getExpertMediaFetchInit(controller.signal),
-    );
-    const contentType = response.headers.get("content-type") ?? "";
+  for (const [index, attempt] of attempts.entries()) {
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => controller.abort(), MEDIA_FETCH_TIMEOUT_MS);
+    try {
+      const result = await readMediaAttempt(
+        { fetchUrl: attempt.fetchUrl, init: mediaAttemptInit(attempt.fetchUrl, controller.signal) },
+        originalUrl,
+      );
+      if (!result.blob) {
+        lastFailure = result.failure;
+        if (index < attempts.length - 1 && result.failure) {
+          console.warn(`${LOG_PREFIX} media fetch was not an image; retrying`, {
+            url: redactMediaUrlForLog(originalUrl),
+            proxyUrl: redactMediaUrlForLog(attempt.fetchUrl),
+            status: result.failure.status ?? null,
+            contentType: result.failure.contentType ?? null,
+            reason: result.failure.reason,
+          });
+        }
+        continue;
+      }
 
-    if (!response.ok) {
-      return {
-        dataUrl: null,
-        failure: {
-          url: originalUrl,
-          proxyUrl: fetchUrl,
-          status: response.status,
-          contentType,
-          reason: `HTTP ${response.status}`,
-        },
-      };
-    }
+      const effectiveType = result.blob.type;
+      if (isHeicMedia(effectiveType)) {
+        console.warn(`${LOG_PREFIX} HEIC/HEIF may not render in PDF capture`, {
+          url: redactMediaUrlForLog(originalUrl),
+          contentType: effectiveType,
+        });
+      }
 
-    const blob = await response.blob();
-    if (!blob.size) {
-      return {
-        dataUrl: null,
-        failure: {
-          url: originalUrl,
-          proxyUrl: fetchUrl,
-          status: response.status,
-          contentType: blob.type || contentType,
-          reason: "empty media body",
-        },
-      };
-    }
-
-    const effectiveType = blob.type || contentType;
-    if (isHeicMedia(effectiveType)) {
-      console.warn(`${LOG_PREFIX} HEIC/HEIF may not render in PDF capture`, {
-        url: redactMediaUrlForLog(originalUrl),
-        contentType: effectiveType,
-      });
-    }
-
-    return { dataUrl: await blobToCanvasFriendlyDataUrl(blob) };
-  } catch (error) {
-    const reason =
-      error instanceof DOMException && error.name === "AbortError"
-        ? "request timed out"
-        : error instanceof Error
-          ? error.message
-          : "fetch failed";
-    return {
-      dataUrl: null,
-      failure: {
+      return { dataUrl: await blobToCanvasFriendlyDataUrl(result.blob) };
+    } catch (error) {
+      lastFailure = {
         url: originalUrl,
-        proxyUrl: fetchUrl,
-        reason,
-      },
-    };
-  } finally {
-    window.clearTimeout(timer);
+        proxyUrl: attempt.fetchUrl,
+        reason:
+          error instanceof DOMException && error.name === "AbortError"
+            ? "request timed out"
+            : error instanceof Error
+              ? error.message
+              : "fetch failed",
+      };
+      if (index < attempts.length - 1) {
+        console.warn(`${LOG_PREFIX} media fetch was not an image; retrying`, {
+          url: redactMediaUrlForLog(originalUrl),
+          proxyUrl: redactMediaUrlForLog(attempt.fetchUrl),
+          reason: lastFailure.reason,
+        });
+      }
+    } finally {
+      window.clearTimeout(timer);
+    }
   }
+
+  return {
+    dataUrl: null,
+    failure: lastFailure ?? {
+      url: originalUrl,
+      proxyUrl: fetchUrl,
+      reason: "fetch failed",
+    },
+  };
 }
 
 export function prepareExportImageElement(image: HTMLImageElement): void {
@@ -406,7 +522,7 @@ export async function prefetchReportMediaDataUrls(
   await Promise.all(
     unique.map(async (url) => {
       const result = await fetchReportMediaAsDataUrl(url);
-      if (result.dataUrl) {
+      if (result.dataUrl?.startsWith("data:image")) {
         cache.set(url, result.dataUrl);
         cache.set(unwrapReportMediaUrl(url), result.dataUrl);
         return;

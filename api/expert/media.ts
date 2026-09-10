@@ -3,6 +3,7 @@ import {
   fetchRemoteMedia,
   hasExpertMediaAuth,
   isAllowedMediaUrl,
+  isNonImageMediaPayload,
 } from "../_lib/expertBackend";
 
 export default async function handler(
@@ -46,6 +47,12 @@ export default async function handler(
     const contentType =
       upstream.headers.get("content-type") ?? "application/octet-stream";
     const body = Buffer.from(await upstream.arrayBuffer());
+    if (isNonImageMediaPayload(contentType, body)) {
+      return res.status(502).json({
+        error: true,
+        message: "Upstream did not return an image.",
+      });
+    }
     res.statusCode = 200;
     res.setHeader("Content-Type", contentType);
     res.setHeader("Cache-Control", "private, max-age=300");

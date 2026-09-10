@@ -121,6 +121,32 @@ export function hasExpertMediaAuth(
   return /^Bearer\s+\S+/i.test(header.trim());
 }
 
+function bodyLooksLikeHtml(body: Buffer | Uint8Array): boolean {
+  const start = Buffer.from(body.subarray(0, 80))
+    .toString("utf8")
+    .trimStart()
+    .toLowerCase();
+  if (start.startsWith("<svg") || start.startsWith("<?xml")) return false;
+  return (
+    start.startsWith("<!doctype") ||
+    start.startsWith("<html") ||
+    start.startsWith("<head")
+  );
+}
+
+/** True when an upstream 200 is HTML/JSON/XML instead of image bytes. */
+export function isNonImageMediaPayload(
+  contentType: string,
+  body: Buffer | Uint8Array,
+): boolean {
+  if (bodyLooksLikeHtml(body)) return true;
+  const type = contentType.toLowerCase();
+  if (!type || type.startsWith("image/") || type.includes("octet-stream")) {
+    return false;
+  }
+  return /html|json|xml|javascript|text\/plain/i.test(type);
+}
+
 export async function fetchRemoteMedia(
   url: string,
   timeoutMs = 8_000,
@@ -131,9 +157,11 @@ export async function fetchRemoteMedia(
     return await fetch(url, {
       cache: "no-store",
       signal: controller.signal,
+      redirect: "follow",
       headers: {
         Accept: "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
-        "User-Agent": "CoinzyExpertWebapp/1.0 (media-proxy)",
+        "User-Agent":
+          "Mozilla/5.0 (compatible; CoinzyExpertMediaProxy/1.0)",
       },
     });
   } finally {

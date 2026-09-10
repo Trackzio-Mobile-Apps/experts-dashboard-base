@@ -80,7 +80,7 @@ describe("fetchReportMediaAsDataUrl", () => {
     vi.restoreAllMocks();
   });
 
-  it("converts an authenticated proxy response into a data URL", async () => {
+  it("converts a remote image into a data URL without attaching the expert JWT to Firebase", async () => {
     const fetchMock = vi.fn().mockResolvedValue(pngResponse());
     vi.stubGlobal("fetch", fetchMock);
 
@@ -91,15 +91,57 @@ describe("fetchReportMediaAsDataUrl", () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [requestUrl, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(requestUrl).toBe(reportMediaFetchUrl(FIREBASE_URL));
-    expect(requestUrl).not.toContain("test-token");
-    expect(new Headers(init.headers).get("Authorization")).toBe(
+    expect(requestUrl).toBe(FIREBASE_URL);
+    expect(new Headers(init.headers).get("Authorization")).toBeNull();
+    expect(init.credentials).toBe("omit");
+  });
+
+  it("falls back to the authenticated proxy when the storage URL returns HTML", async () => {
+    const fetchMock = vi.fn((url: string) => {
+      if (String(url).startsWith("/api/expert/media")) return Promise.resolve(pngResponse());
+      return Promise.resolve(
+        new Response("<!DOCTYPE html><html><body>app</body></html>", {
+          status: 200,
+          headers: { "Content-Type": "text/html; charset=utf-8" },
+        }),
+      );
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await fetchReportMediaAsDataUrl(FIREBASE_URL);
+
+    expect(result.failure).toBeUndefined();
+    expect(result.dataUrl).toMatch(/^data:image\/png;base64,/);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    const proxyCall = fetchMock.mock.calls[1] as unknown as [string, RequestInit];
+    expect(proxyCall[0]).toBe(reportMediaFetchUrl(FIREBASE_URL));
+    expect(new Headers(proxyCall[1].headers).get("Authorization")).toBe(
       "Bearer test-token",
     );
   });
 
+  it("does not treat an HTML 200 as a successful image", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation(() =>
+        Promise.resolve(
+          new Response("<!DOCTYPE html><html></html>", {
+            status: 200,
+            headers: { "Content-Type": "text/html" },
+          }),
+        ),
+      ),
+    );
+
+    const result = await fetchReportMediaAsDataUrl(FIREBASE_URL);
+
+    expect(result.dataUrl).toBeNull();
+    expect(result.failure?.contentType).toMatch(/html/i);
+    expect(result.failure?.reason).toMatch(/non-image response/i);
+  });
+
   it("returns a logged failure for a non-200 media response", async () => {
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    vi.spyOn(console, "warn").mockImplementation(() => undefined);
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue(
@@ -119,7 +161,7 @@ describe("fetchReportMediaAsDataUrl", () => {
       reason: "HTTP 401",
     });
     expect(result.failure?.url).toBe(FIREBASE_URL);
-    expect(warn).not.toHaveBeenCalled();
+    expect(result.failure?.reason).toBe("HTTP 401");
   });
 
   it("converts a Blob to a data URL", async () => {

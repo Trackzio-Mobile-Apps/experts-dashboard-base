@@ -10,6 +10,7 @@ import {
   getSocketUrl,
   hasExpertMediaAuth,
   isAllowedMediaUrl,
+  isNonImageMediaPayload,
   parseCookies,
 } from "../api/_lib/expertBackend";
 
@@ -164,6 +165,13 @@ async function handleMedia(
     const contentType =
       upstream.headers.get("content-type") ?? "application/octet-stream";
     const body = Buffer.from(await upstream.arrayBuffer());
+    if (isNonImageMediaPayload(contentType, body)) {
+      sendJson(res, 502, {
+        error: true,
+        message: "Upstream did not return an image.",
+      });
+      return true;
+    }
     res.statusCode = 200;
     res.setHeader("Content-Type", contentType);
     res.setHeader("Cache-Control", "private, max-age=300");
