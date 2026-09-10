@@ -128,7 +128,14 @@ export async function fetchRemoteMedia(
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    return await fetch(url, { cache: "no-store", signal: controller.signal });
+    return await fetch(url, {
+      cache: "no-store",
+      signal: controller.signal,
+      headers: {
+        Accept: "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
+        "User-Agent": "CoinzyExpertWebapp/1.0 (media-proxy)",
+      },
+    });
   } finally {
     clearTimeout(timer);
   }
