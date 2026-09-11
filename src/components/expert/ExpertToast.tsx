@@ -14,7 +14,7 @@ type ExpertToastProps = {
 function SuccessIcon() {
   return (
     <span
-      className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-expert-action-green text-[10px] text-expert-action-green-text"
+      className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-expert-action-green text-[11px] font-bold leading-none text-white"
       aria-hidden
     >
       ✓

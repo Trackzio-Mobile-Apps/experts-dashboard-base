@@ -87,14 +87,86 @@ export function isPrivateHost(hostname: string): boolean {
   return false;
 }
 
+export function isPlaceholderMediaHost(hostname: string): boolean {
+  const host = hostname.toLowerCase();
+  return (
+    host === "example.com" ||
+    host.endsWith(".example.com") ||
+    host === "example.net" ||
+    host.endsWith(".example.net") ||
+    host === "example.org" ||
+    host.endsWith(".example.org")
+  );
+}
+
 export function isAllowedMediaUrl(url: URL): boolean {
   if (url.protocol !== "https:" && url.protocol !== "http:") {
     return false;
   }
-  if (isPrivateHost(url.hostname)) {
+  if (isPrivateHost(url.hostname) || isPlaceholderMediaHost(url.hostname)) {
     return false;
   }
   return true;
+}
+
+export function hasExpertMediaAuth(
+  cookieHeader: string | undefined,
+  authorization: string | string[] | undefined,
+): boolean {
+  const cookies = parseCookies(cookieHeader);
+  if (cookies[getJwtCookieName()]) return true;
+
+  const header = Array.isArray(authorization) ? authorization[0] : authorization;
+  if (typeof header !== "string") return false;
+  return /^Bearer\s+\S+/i.test(header.trim());
+}
+
+function bodyLooksLikeHtml(body: Buffer | Uint8Array): boolean {
+  const start = Buffer.from(body.subarray(0, 80))
+    .toString("utf8")
+    .trimStart()
+    .toLowerCase();
+  if (start.startsWith("<svg") || start.startsWith("<?xml")) return false;
+  return (
+    start.startsWith("<!doctype") ||
+    start.startsWith("<html") ||
+    start.startsWith("<head")
+  );
+}
+
+/** True when an upstream 200 is HTML/JSON/XML instead of image bytes. */
+export function isNonImageMediaPayload(
+  contentType: string,
+  body: Buffer | Uint8Array,
+): boolean {
+  if (bodyLooksLikeHtml(body)) return true;
+  const type = contentType.toLowerCase();
+  if (!type || type.startsWith("image/") || type.includes("octet-stream")) {
+    return false;
+  }
+  return /html|json|xml|javascript|text\/plain/i.test(type);
+}
+
+export async function fetchRemoteMedia(
+  url: string,
+  timeoutMs = 8_000,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, {
+      cache: "no-store",
+      signal: controller.signal,
+      redirect: "follow",
+      headers: {
+        Accept: "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
+        "User-Agent":
+          "Mozilla/5.0 (compatible; CoinzyExpertMediaProxy/1.0)",
+      },
+    });
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 export const API_UNAVAILABLE_MESSAGE =

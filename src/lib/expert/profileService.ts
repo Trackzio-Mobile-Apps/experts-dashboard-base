@@ -56,21 +56,84 @@ function splitExpertName(name: string): { firstName: string; lastName: string } 
   };
 }
 
-function mapExpertise(value: unknown): string[] {
+const EMAIL_LIKE_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/i;
+
+function looksLikeEmail(value: string): boolean {
+  return EMAIL_LIKE_RE.test(value.trim());
+}
+
+function stringifyListItem(value: unknown): string {
+  if (typeof value === "string") return value.trim();
+  if (value == null) return "";
+  return String(value).trim();
+}
+
+export function mapEmail(value: unknown): string {
+  if (typeof value === "string") return value.trim();
   if (Array.isArray(value)) {
-    return value
-      .map((item) =>
-        typeof item === "string" ? item.trim() : String(item).trim(),
-      )
-      .filter(Boolean);
+    const first = value
+      .map(stringifyListItem)
+      .find((item) => looksLikeEmail(item) || item);
+    return first ?? "";
   }
-  if (typeof value === "string" && value.trim()) {
-    return value
+  return "";
+}
+
+/**
+ * True when a bio/tagline is only the expert's email, possibly concatenated
+ * or repeated without separators (the live API has returned this).
+ */
+export function isEmailOnlyDescription(value: string, email: string): boolean {
+  const compact = value.replace(/[\s,;|/]+/g, "");
+  if (!compact) return false;
+
+  const normalizedEmail = email.trim().toLowerCase();
+  if (normalizedEmail.includes("@")) {
+    const leftover = compact.toLowerCase().split(normalizedEmail).join("");
+    if (leftover.length === 0) return true;
+  }
+
+  return looksLikeEmail(compact);
+}
+
+export function mapOneLineDescription(
+  value: unknown,
+  email = "",
+): string | null {
+  let text: string | null = null;
+
+  if (Array.isArray(value)) {
+    const parts = value
+      .map(stringifyListItem)
+      .filter(Boolean)
+      .filter((part) => !looksLikeEmail(part) && !isEmailOnlyDescription(part, email));
+    text = parts.length > 0 ? parts.join(", ") : null;
+  } else if (typeof value === "string" && value.trim()) {
+    text = value.trim();
+  }
+
+  if (!text) return null;
+  if (isEmailOnlyDescription(text, email)) return null;
+  return text;
+}
+
+export function mapExpertise(value: unknown, email = ""): string[] {
+  let tags: string[] = [];
+  if (Array.isArray(value)) {
+    tags = value.map(stringifyListItem).filter(Boolean);
+  } else if (typeof value === "string" && value.trim()) {
+    tags = value
       .split(",")
       .map((part) => part.trim())
       .filter(Boolean);
   }
-  return [];
+
+  const emailLower = email.trim().toLowerCase();
+  return tags.filter((tag) => {
+    if (emailLower && tag.toLowerCase() === emailLower) return false;
+    if (looksLikeEmail(tag)) return false;
+    return true;
+  });
 }
 
 /** Prefer the live API display string (`yearsOfXp`), then other aliases. */
@@ -116,9 +179,11 @@ function mapBackendExpertToProfile(expert: BackendExpert): ExpertProfile {
   const record = expert as BackendExpert & Record<string, unknown>;
   const yearsRaw = pickYearsOfXpRaw(record);
 
+  const email = mapEmail(record.email);
+
   return {
     id: normalizeMongoId(expert._id),
-    email: expert.email,
+    email,
     firstName,
     lastName,
     name: fullName.trim(),
@@ -142,9 +207,13 @@ function mapBackendExpertToProfile(expert: BackendExpert): ExpertProfile {
         ? record.last_offered_at
         : null),
     profilePicture: expert.profilePicture ?? null,
-    oneLineDescription: expert.oneLineDescription ?? null,
+    oneLineDescription: mapOneLineDescription(
+      expert.oneLineDescription ?? record.one_line_description,
+      email,
+    ),
     expertise: mapExpertise(
       expert.expertise ?? record.expertiseCategories ?? record.expertise_tags,
+      email,
     ),
     yearsOfExperience: mapYearsOfExperience(yearsRaw),
     yearsOfXp: mapYearsOfXpLabel(yearsRaw),
@@ -170,6 +239,7 @@ export function normalizeExpertProfile(
   const name =
     profile.name?.trim() ||
     buildExpertFullName(firstName, lastName);
+  const email = mapEmail(profile.email);
   const yearsOfXp =
     typeof profile.yearsOfXp === "string" && profile.yearsOfXp.trim()
       ? profile.yearsOfXp.trim()
@@ -181,8 +251,10 @@ export function normalizeExpertProfile(
 
   return {
     ...profile,
+    email,
     name,
-    expertise: Array.isArray(profile.expertise) ? profile.expertise : [],
+    oneLineDescription: mapOneLineDescription(profile.oneLineDescription, email),
+    expertise: mapExpertise(profile.expertise, email),
     yearsOfExperience,
     yearsOfXp,
     lastOfferedAt:

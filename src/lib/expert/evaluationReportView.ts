@@ -1,6 +1,7 @@
 import { themeConfig } from "@/config";
 import {
   EVALUATION_FORM_SECTIONS,
+  formatEstimatedValueDisplay,
   normalizeEvaluationFormState,
 } from "@/lib/expert/evaluationForm";
 import {
@@ -10,6 +11,7 @@ import {
 } from "@/lib/expert/format";
 import { contentFieldsToFormState } from "@/lib/expert/reportContentFields";
 import { mediaFromReportSources } from "@/lib/expert/requestMappers";
+import { isUnusableMediaUrl } from "@/lib/expert/mediaUrls";
 import type {
   BackendReport,
   EvaluationFormState,
@@ -130,7 +132,10 @@ function formatExperienceYears(profile: ExpertProfile): string {
 }
 
 function formatEstimatedValue(form: EvaluationFormState): string {
-  return displayValue(form.estimatedPriceRange);
+  return formatEstimatedValueDisplay(
+    form.estimatedPriceRange ?? "",
+    form.priceCurrency ?? "",
+  );
 }
 
 function buildAuthenticityNote(form: EvaluationFormState): string {
@@ -216,7 +221,7 @@ function buildMarketSection(form: EvaluationFormState): EvaluationReportSection 
       { label: "Rarity", value: displayValue(form.rarity) },
       {
         label: "Est. Market Value",
-        value: displayValue(form.estimatedPriceRange),
+        value: formatEstimatedValue(form),
       },
     ],
   };
@@ -409,10 +414,10 @@ export function reportGalleryMedia(
   const items: RequestMediaItem[] = [];
   for (const item of media) {
     if (item.kind === "image") {
-      items.push(item);
+      if (!isUnusableMediaUrl(item.src)) items.push(item);
       continue;
     }
-    if (item.poster?.trim()) {
+    if (item.poster?.trim() && !isUnusableMediaUrl(item.poster)) {
       items.push({ ...item, kind: "image", src: item.poster });
     }
   }

@@ -69,7 +69,7 @@ export type ExpertLoginApiData = {
 export type BackendExpert = {
   _id: string;
   name: string;
-  email: string;
+  email: string | string[];
   isInternal: boolean;
   isAvailableForRequests: boolean;
   supportedCountries: string[];
@@ -83,7 +83,7 @@ export type BackendExpert = {
   lastAssignedAt: string | null;
   lastOfferedAt?: string | null;
   profilePicture: string | null;
-  oneLineDescription: string | null;
+  oneLineDescription?: string | string[] | null;
   /** Optional contract fields — shown when the API provides them. */
   expertise?: string[] | string | null;
   /** Live API field observed on `GET /experts/me` (e.g. `"25 years"`). */
@@ -178,6 +178,46 @@ export type ExpertReviewsApiData = {
   reviews: BackendExpertReview[];
 };
 
+export type BackendInboxItem = {
+  _id: string;
+  event: string;
+  payload?: {
+    offerId?: string | null;
+    requestId?: string | null;
+    round?: number | null;
+    expiresAt?: string | null;
+  };
+  requestId?: string | null;
+  offerId?: string | null;
+  isShown?: boolean;
+  isRead?: boolean;
+  isActive?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type ExpertInboxApiData = {
+  inbox: BackendInboxItem[];
+};
+
+export type ExpertInboxItemApiData = {
+  inboxItem: BackendInboxItem;
+};
+
+export type ExpertInboxItem = {
+  id: string;
+  event: string;
+  offerId: string;
+  requestId: string;
+  round: number | null;
+  expiresAt: string | null;
+  isShown: boolean;
+  isRead: boolean;
+  isActive: boolean;
+  createdAt: string | null;
+  updatedAt: string | null;
+};
+
 export type RequestStatus =
   | "created"
   | "allocating"
@@ -210,8 +250,10 @@ export type BackendRequest = {
   completedAt?: string | null;
   createdAt?: string;
   updatedAt?: string;
-  /** From `GET /experts/me/requests` once a report exists (draft or submitted). */
+  /** Submitted report id. Null while the report is still a draft. */
   reportId?: string | null;
+  /** Expert-only: draft report `_id` while `isDraft` is true. */
+  draftReportId?: string | null;
   report?: BackendReport | string | null;
 };
 
@@ -252,6 +294,11 @@ export type ExpertRequestsApiData = {
 
 export type ExpertReportApiData = {
   report: BackendReport;
+};
+
+export type ExpertReportsListApiData = {
+  reports?: BackendReport[];
+  items?: BackendReport[];
 };
 
 export type ExpertNavCounts = {
@@ -320,6 +367,7 @@ export type HistoryRow = {
 
 export type HistorySummaryStats = {
   totalCompleted: number;
+  completedThisMonth: number;
   avgTurnaround: string;
   totalEarnedInr: number | null;
   earnedThisMonthInr: number | null;

@@ -9,11 +9,22 @@ const rootDir = path.dirname(fileURLToPath(import.meta.url));
 function applyServerEnv(env: Record<string, string>): void {
   process.env.API_BASE_URL =
     env.API_BASE_URL || env.EXPERT_API_BASE_URL || process.env.API_BASE_URL || "";
-  process.env.SOCKET_URL = env.SOCKET_URL || process.env.SOCKET_URL || "";
+  process.env.SOCKET_URL =
+    env.SOCKET_URL ||
+    env.EXPERT_API_BASE_URL ||
+    process.env.SOCKET_URL ||
+    "";
   process.env.APP_SLUG = env.APP_SLUG || process.env.APP_SLUG || "expert";
 }
 
-export default defineConfig(({ mode }) => {
+export default defineConfig(({ mode, command }) => {
+  // Vite's loadEnv never overwrites existing process.env. An in-process
+  // restart (e.g. after editing .env.local) would otherwise keep the first
+  // API_BASE_URL. Clear these so the env files are the source of truth.
+  delete process.env.API_BASE_URL;
+  delete process.env.EXPERT_API_BASE_URL;
+  delete process.env.SOCKET_URL;
+
   applyServerEnv(loadEnv(mode, rootDir, ""));
 
   const apiMiddleware = createExpertApiMiddleware();
@@ -69,7 +80,7 @@ export default defineConfig(({ mode }) => {
     },
     define: {
       "process.env.NODE_ENV": JSON.stringify(
-        mode === "production" ? "production" : "development",
+        command === "build" ? "production" : "development",
       ),
     },
   };

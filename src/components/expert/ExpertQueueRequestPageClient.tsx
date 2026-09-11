@@ -5,16 +5,10 @@ import {
   ExpertOffersError,
   formatOfferErrorMessage,
 } from "@/lib/expert/offersService";
-import {
-  loadEvaluationDraftReportId,
-  saveEvaluationDraftReportId,
-} from "@/lib/expert/evaluationDraftStorage";
+import { saveEvaluationDraftReportId } from "@/lib/expert/evaluationDraftStorage";
 import { buildEvaluationDetail } from "@/lib/expert/requestMappers";
 import { useExpertPanelData } from "@/lib/expert/expertPanelDataStore";
-import {
-  ensureDraftReport,
-  extractReportIdFromRequest,
-} from "@/lib/expert/reportsService";
+import { extractReportIdFromRequest } from "@/lib/expert/reportsService";
 import { formatRequestId, normalizeMongoId } from "@/lib/expert/format";
 import type {
   BackendRequest,
@@ -45,10 +39,8 @@ export function ExpertQueueRequestPageClient({
   /** After a successful Accept — keeps the evaluation form open. */
   const [accepted, setAccepted] = useState(false);
   const [showAcceptedToast, setShowAcceptedToast] = useState(false);
-  /** Report id from accept/create — list API often omits it until later. */
-  const [knownReportId, setKnownReportId] = useState<string | null>(() =>
-    loadEvaluationDraftReportId(requestId),
-  );
+  /** Report id from the request once a draft exists — not created on accept. */
+  const [knownReportId, setKnownReportId] = useState<string | null>(null);
 
   const requestFromStore = useMemo(
     () =>
@@ -104,11 +96,9 @@ export function ExpertQueueRequestPageClient({
     const fromRequest = request
       ? extractReportIdFromRequest(request)
       : null;
-    const fromLocal = loadEvaluationDraftReportId(requestId);
-    const next = fromRequest || fromLocal;
-    if (next) {
-      setKnownReportId((prev) => prev || next);
-      saveEvaluationDraftReportId(requestId, next);
+    if (fromRequest) {
+      setKnownReportId((prev) => prev || fromRequest);
+      saveEvaluationDraftReportId(requestId, fromRequest);
     }
   }, [request, requestId]);
 
@@ -181,27 +171,8 @@ export function ExpertQueueRequestPageClient({
       setAccepted(true);
       setShowAcceptedToast(true);
       setUnavailable(false);
-      const coinName =
-        typeof request?.coinTitle === "string" && request.coinTitle.trim()
-          ? request.coinTitle.trim()
-          : undefined;
-      try {
-        const draft = await ensureDraftReport({
-          requestId,
-          reportId: knownReportId,
-          coinName,
-        });
-        const reportId = normalizeMongoId(draft._id);
-        if (reportId) {
-          setKnownReportId(reportId);
-          saveEvaluationDraftReportId(requestId, reportId);
-        }
-      } catch (draftErr) {
-        if (process.env.NODE_ENV !== "production") {
-          console.warn("[expert] initial draft create failed", draftErr);
-        }
-      }
       // Keep the evaluation form mounted — sync queue data in the background.
+      // Do not POST a report here; the first autosave creates it when there is content.
       await refresh({ silent: true });
     } catch (err) {
       const status = err instanceof ExpertOffersError ? err.status : 0;
@@ -245,7 +216,7 @@ export function ExpertQueueRequestPageClient({
     } finally {
       setAccepting(false);
     }
-  }, [matchedOfferId, accepting, requestId, refresh, request, knownReportId]);
+  }, [matchedOfferId, accepting, requestId, refresh]);
 
   // Only skeleton on first load — never unmount the form after it has opened.
   if (isLoading && !detail) {
@@ -305,8 +276,8 @@ export function ExpertQueueRequestPageClient({
       onAccept={handleAccept}
       onDismissToast={() => setShowAcceptedToast(false)}
       onSubmitted={async () => {
-        await refresh();
         router.push("/expert/history");
+        void refresh();
       }}
     />
   );

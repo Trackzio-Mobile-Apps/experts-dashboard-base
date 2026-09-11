@@ -1,13 +1,13 @@
 import { ExpertDraftsPageBody } from "@/components/expert/ExpertDraftsPageBody";
-import { evaluateFormProgress } from "@/lib/expert/evaluationForm";
-import { loadEvaluationDraft } from "@/lib/expert/evaluationDraftStorage";
 import { normalizeMongoId } from "@/lib/expert/format";
 import { mapRequestToDraftItem } from "@/lib/expert/requestMappers";
 import { useExpertPanelData } from "@/lib/expert/expertPanelDataStore";
 import {
   extractReportIdFromRequest,
-  getReportForRequest,
+  getExpertReports,
+  getReport,
   isDraftReport,
+  matchReportIdForRequest,
   reportProgressPercent,
 } from "@/lib/expert/reportsService";
 import type { DraftListItem } from "@/lib/expert/types";
@@ -24,8 +24,6 @@ export function ExpertDraftsPageClient() {
       draftsList.map((request) => normalizeMongoId(request._id)).filter(Boolean),
     );
 
-    // Drop expired rows immediately so the page matches the badge without waiting
-    // on async progress fetches.
     setItems((prev) => prev.filter((row) => allowedIds.has(row.id)));
 
     void (async () => {
@@ -37,26 +35,51 @@ export function ExpertDraftsPageClient() {
         return;
       }
 
-      // Only skeleton on first populate — not on every deadline-clock tick.
       setLoadingDrafts((wasLoading) => wasLoading || items.length === 0);
 
       try {
+        let reports: Awaited<ReturnType<typeof getExpertReports>> = [];
+        try {
+          reports = await getExpertReports();
+        } catch (err) {
+          console.warn("[expert:draft] drafts page GET /experts/reports failed", err);
+          reports = [];
+        }
+        console.log("[expert:draft] drafts page matching reports", {
+          draftRequestCount: draftsList.length,
+          reportCount: reports.length,
+        });
         const rows = await Promise.all(
           draftsList.map(async (request) => {
             const requestId = normalizeMongoId(request._id);
-            const local = loadEvaluationDraft(requestId);
-            const localProgress = local
-              ? evaluateFormProgress(local).percent
-              : 0;
+            const fromRequest = extractReportIdFromRequest(request);
+            const reportId =
+              fromRequest || matchReportIdForRequest(reports, requestId);
 
-            let progress = localProgress;
-            const reportId = extractReportIdFromRequest(request);
+            let progress = 0;
             if (reportId) {
-              const report = await getReportForRequest(requestId, { request });
-              if (report && isDraftReport(report)) {
-                progress = Math.max(progress, reportProgressPercent(report));
+              try {
+                const report = await getReport(reportId);
+                if (report && isDraftReport(report)) {
+                  progress = reportProgressPercent(report);
+                }
+              } catch (err) {
+                console.warn("[expert:draft] drafts page GET report failed", {
+                  requestId,
+                  reportId,
+                  err,
+                });
+                progress = 0;
               }
             }
+
+            console.log("[expert:draft] drafts row", {
+              requestId,
+              displayId: request.displayId ?? null,
+              fromRequest,
+              reportId,
+              progress,
+            });
 
             return mapRequestToDraftItem(request, progress);
           }),
@@ -73,7 +96,6 @@ export function ExpertDraftsPageClient() {
     return () => {
       cancelled = true;
     };
-    // intentionally depend on draftsList only — items.length read for loader gate
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [draftsList]);
 

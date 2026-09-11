@@ -9,6 +9,7 @@ import {
 } from "@/lib/expert/format";
 import { EVALUATION_DUE_SOON_HOURS } from "@/lib/expert/constants";
 import { extractReportIdFromRequest } from "@/lib/expert/reportsService";
+import { isUnusableMediaUrl } from "@/lib/expert/mediaUrls";
 import type {
   BackendOffer,
   BackendRequest,
@@ -72,7 +73,9 @@ function readVideoPoster(entry: Record<string, unknown>): string {
     entry.poster ?? entry.thumbnail ?? entry.thumbnailUrl ?? entry.preview,
     "",
   );
-  if (!candidate || isVideoUrl(candidate)) return "";
+  if (!candidate || isVideoUrl(candidate) || isUnusableMediaUrl(candidate)) {
+    return "";
+  }
   return candidate;
 }
 
@@ -99,7 +102,7 @@ function pushMediaUrl(
   opts: { alt: string; group?: string; forceVideo?: boolean },
 ) {
   const src = url.trim();
-  if (!src) return;
+  if (!src || isUnusableMediaUrl(src)) return;
   const isVideo = opts.forceVideo || isVideoUrl(src);
   if (isVideo) {
     media.push({
@@ -634,6 +637,13 @@ export function filterHistoryByPeriod(
     const date =
       request?.completedAt ?? request?.submittedAt ?? request?.createdAt;
     if (!date) return false;
+    if (period === "thisMonth") {
+      const now = new Date();
+      const start = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+      const end = new Date(now.getFullYear(), now.getMonth() + 1, 1).getTime();
+      const t = new Date(date).getTime();
+      return t >= start && t < end;
+    }
     const diffDays =
       (Date.now() - new Date(date).getTime()) / (1000 * 60 * 60 * 24);
     if (period === "month") return diffDays <= 31;

@@ -1,11 +1,13 @@
 import { ExpertToast } from "@/components/expert/ExpertToast";
 import {
   collectExpiredRequestNotifications,
+  formatExpiredRequestToastMessage,
   getExpiredRequestNotificationService,
 } from "@/lib/expert/expiredRequestNotifications";
 import { normalizeMongoId } from "@/lib/expert/format";
 import { useExpertPanelData } from "@/lib/expert/expertPanelDataStore";
 import { useExpertProfile } from "@/lib/expert/expertProfileStore";
+import { useExpertSocket } from "@/lib/expert/expertSocketProvider";
 import { useDeadlineClock } from "@/lib/expert/useDeadlineClock";
 import { usePathname } from "@/lib/router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -37,6 +39,7 @@ export function ExpertDeadlineExceededToastGate() {
   const pathname = usePathname();
   const { profile } = useExpertProfile();
   const { acceptedRequests, requests, isLoading } = useExpertPanelData();
+  const { subscribeDeadlineMissed } = useExpertSocket();
   const nowMs = useDeadlineClock(15_000);
   const service = getExpiredRequestNotificationService();
 
@@ -60,10 +63,71 @@ export function ExpertDeadlineExceededToastGate() {
     return [...byId.values()];
   }, [acceptedRequests, requests]);
 
+  const displayIdByRequestId = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const request of expirySourceRequests) {
+      const id = normalizeMongoId(request._id);
+      if (!id || map.has(id)) continue;
+      if (typeof request.displayId === "string" && request.displayId.trim()) {
+        map.set(id, request.displayId.trim());
+      }
+    }
+    return map;
+  }, [expirySourceRequests]);
+
+  const openRequestIdRef = useRef(openRequestId);
+  const expertIdRef = useRef(expertId);
+  const displayIdByRequestIdRef = useRef(displayIdByRequestId);
+
+  useEffect(() => {
+    openRequestIdRef.current = openRequestId;
+  }, [openRequestId]);
+
+  useEffect(() => {
+    expertIdRef.current = expertId;
+  }, [expertId]);
+
+  useEffect(() => {
+    displayIdByRequestIdRef.current = displayIdByRequestId;
+  }, [displayIdByRequestId]);
+
   const enqueueToasts = useCallback((toasts: QueuedToast[]) => {
     if (toasts.length === 0) return;
     setQueue((prev) => [...prev, ...toasts]);
   }, []);
+
+  useEffect(() => {
+    return subscribeDeadlineMissed((payload) => {
+      const requestId = payload.requestId
+        ? normalizeMongoId(payload.requestId)
+        : "";
+      const currentExpertId = expertIdRef.current;
+      if (!requestId || !currentExpertId) return;
+      if (recordedIdsRef.current.has(requestId)) return;
+
+      recordedIdsRef.current.add(requestId);
+
+      const notification = {
+        requestId,
+        displayId: displayIdByRequestIdRef.current.get(requestId),
+        expiredAt: new Date().toISOString(),
+      };
+
+      void (async () => {
+        await service.recordExpired(currentExpertId, [notification]);
+
+        if (openRequestIdRef.current === requestId) {
+          return;
+        }
+
+        await service.markShown(currentExpertId, [requestId]);
+        const message = formatExpiredRequestToastMessage([notification]);
+        if (message) {
+          enqueueToasts([{ message, requestIds: [requestId] }]);
+        }
+      })();
+    });
+  }, [enqueueToasts, service, subscribeDeadlineMissed]);
 
   const flushUnshown = useCallback(async () => {
     if (!expertId || flushInFlightRef.current) return;

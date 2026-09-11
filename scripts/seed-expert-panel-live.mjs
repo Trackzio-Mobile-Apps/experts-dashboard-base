@@ -5,7 +5,7 @@
  *   ADMIN_API_KEY=... USER_JWT_SHARED_SECRET=... node scripts/seed-expert-panel-live.mjs
  *
  * Optional env:
- *   API_BASE_URL          (default: https://coinzy-experts-api.trackzio.com)
+ *   API_BASE_URL          (default: https://api.coinzy-experts-qa.trackzio.com)
  *   EXPERT_EMAIL          (default: shreyans+expert@trackzio.com)
  *   EXPERT_PASSWORD       (default: Tr@ckzi0)
  *   SEED_MOBILE_USER_ID   (default: coinzy-panel-test-user)
@@ -16,7 +16,7 @@ import crypto from "node:crypto";
 const BASE_URL = (
   process.env.API_BASE_URL ??
   process.env.EXPERT_API_BASE_URL ??
-  "https://coinzy-experts-api.trackzio.com"
+  "https://api.coinzy-experts-qa.trackzio.com"
 ).replace(/\/$/, "");
 const ADMIN_KEY = process.env.ADMIN_API_KEY ?? "";
 const USER_JWT_SECRET = process.env.USER_JWT_SHARED_SECRET ?? "";

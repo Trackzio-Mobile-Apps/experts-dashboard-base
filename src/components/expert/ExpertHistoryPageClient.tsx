@@ -7,20 +7,22 @@ import {
   parseHistoryReportParam,
   parseHistoryReportRequestParam,
 } from "@/lib/expert/format";
-import {
-  filterHistoryByPeriod,
-  mapRequestToHistoryRow,
-} from "@/lib/expert/requestMappers";
+import { mapRequestToHistoryRow } from "@/lib/expert/requestMappers";
 import { extractReportIdFromRequest } from "@/lib/expert/reportsService";
 import { useExpertPanelData } from "@/lib/expert/expertPanelDataStore";
 import { useExpertProfile } from "@/lib/expert/expertProfileStore";
-import type { HistorySummaryStats } from "@/lib/expert/types";
+import {
+  getExpertRequests,
+  historyPeriodRequestsQuery,
+  lastCalendarMonthRange,
+} from "@/lib/expert/requestsService";
+import type { BackendRequest, HistorySummaryStats } from "@/lib/expert/types";
 import { useSearchParams } from "@/lib/router";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 export function ExpertHistoryPageClient() {
   const searchParams = useSearchParams();
-  const { requests, offers, isLoading, error } = useExpertPanelData();
+  const { requests, offers, error: panelError } = useExpertPanelData();
   const { profile } = useExpertProfile();
 
   const period = parseHistoryPeriod(searchParams.get("period") ?? undefined);
@@ -31,9 +33,41 @@ export function ExpertHistoryPageClient() {
     searchParams.get("reportRequest") ?? undefined,
   );
 
+  const [periodRequests, setPeriodRequests] = useState<BackendRequest[]>([]);
+  const [periodLoading, setPeriodLoading] = useState(true);
+  const [periodError, setPeriodError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setPeriodLoading(true);
+
+    void (async () => {
+      try {
+        const next = await getExpertRequests(historyPeriodRequestsQuery(period));
+        if (cancelled) return;
+        setPeriodRequests(next);
+        setPeriodError(null);
+      } catch (err) {
+        if (cancelled) return;
+        setPeriodRequests([]);
+        setPeriodError(
+          err instanceof Error
+            ? err.message
+            : "Unable to load evaluation history.",
+        );
+      } finally {
+        if (!cancelled) setPeriodLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [period]);
+
   const allRows = useMemo(
     () =>
-      requests
+      periodRequests
         .map((request) => {
           const requestId = normalizeMongoId(request._id);
           const matchedOffer = offers.find(
@@ -47,34 +81,46 @@ export function ExpertHistoryPageClient() {
           });
         })
         .filter((row) => row.status !== "draft"),
-    [requests, offers],
+    [periodRequests, offers],
   );
 
-  const filtered = useMemo(
-    () => filterHistoryByPeriod(allRows, requests, period),
-    [allRows, requests, period],
+  const allTimeCount = useMemo(
+    () =>
+      requests.filter((request) => {
+        const status = mapRequestToHistoryRow(request).status;
+        return status !== "draft";
+      }).length,
+    [requests],
   );
 
   const rawPage = parseInt(String(searchParams.get("page") ?? "1"), 10);
-  const totalItems = filtered.length;
+  const totalItems = allRows.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / HISTORY_PAGE_SIZE));
   const page = Number.isFinite(rawPage)
     ? Math.min(Math.max(1, rawPage), totalPages)
     : 1;
 
   const start = (page - 1) * HISTORY_PAGE_SIZE;
-  const slice = filtered.slice(start, start + HISTORY_PAGE_SIZE);
+  const slice = allRows.slice(start, start + HISTORY_PAGE_SIZE);
 
   const summary = useMemo<HistorySummaryStats>(() => {
     const completed = requests.filter(
       (r) => r.status === "completed" || r.status === "report_submitted",
-    ).length;
+    );
+    const { createdAfter, createdBefore } = lastCalendarMonthRange();
+    const completedThisMonth = completed.filter((r) => {
+      const raw = r.completedAt ?? r.submittedAt ?? r.createdAt;
+      if (!raw) return false;
+      const t = new Date(raw).getTime();
+      return t >= createdAfter && t < createdBefore;
+    }).length;
     const totalEarnedInr =
       profile?.stats.totalEarningsInr && profile.stats.totalEarningsInr > 0
         ? profile.stats.totalEarningsInr
         : null;
     return {
-      totalCompleted: completed,
+      totalCompleted: completed.length,
+      completedThisMonth,
       avgTurnaround: formatAvgTurnaround(
         profile?.stats.avgCompletionHours ?? null,
       ),
@@ -82,6 +128,8 @@ export function ExpertHistoryPageClient() {
       earnedThisMonthInr: null,
     };
   }, [requests, profile]);
+
+  const error = periodError || panelError;
 
   return (
     <>
@@ -95,11 +143,11 @@ export function ExpertHistoryPageClient() {
         items={slice}
         page={page}
         totalItems={totalItems}
-        allTimeCount={allRows.length}
+        allTimeCount={period === "all" ? totalItems : allTimeCount}
         period={period}
         activeReportId={activeReportId}
         activeReportRequestId={activeReportRequestId}
-        isLoading={isLoading}
+        isLoading={periodLoading}
       />
     </>
   );

@@ -1,8 +1,9 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import {
-  getJwtCookieName,
+  fetchRemoteMedia,
+  hasExpertMediaAuth,
   isAllowedMediaUrl,
-  parseCookies,
+  isNonImageMediaPayload,
 } from "../_lib/expertBackend";
 
 export default async function handler(
@@ -15,8 +16,7 @@ export default async function handler(
       .json({ error: true, message: "Method not allowed." });
   }
 
-  const cookies = parseCookies(req.headers.cookie);
-  if (!cookies[getJwtCookieName()]) {
+  if (!hasExpertMediaAuth(req.headers.cookie, req.headers.authorization)) {
     return res.status(401).json({ error: true, message: "Unauthorized." });
   }
 
@@ -37,7 +37,7 @@ export default async function handler(
   }
 
   try {
-    const upstream = await fetch(target.toString(), { cache: "no-store" });
+    const upstream = await fetchRemoteMedia(target.toString());
     if (!upstream.ok) {
       return res
         .status(502)
@@ -47,6 +47,12 @@ export default async function handler(
     const contentType =
       upstream.headers.get("content-type") ?? "application/octet-stream";
     const body = Buffer.from(await upstream.arrayBuffer());
+    if (isNonImageMediaPayload(contentType, body)) {
+      return res.status(502).json({
+        error: true,
+        message: "Upstream did not return an image.",
+      });
+    }
     res.statusCode = 200;
     res.setHeader("Content-Type", contentType);
     res.setHeader("Cache-Control", "private, max-age=300");

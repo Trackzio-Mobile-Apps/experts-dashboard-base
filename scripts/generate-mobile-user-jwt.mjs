@@ -54,6 +54,6 @@ const token = `${header}.${body}.${signature}`;
 console.log("Mobile user JWT (paste into Postman Authorization: Bearer ...):\n");
 console.log(token);
 console.log("\nThen call:");
-console.log("  GET https://coinzy-experts-api.trackzio.com/users/me");
+console.log("  GET https://api.coinzy-experts-qa.trackzio.com/users/me");
 console.log("\nPayload used:");
 console.log(JSON.stringify({ userId, name, email }, null, 2));

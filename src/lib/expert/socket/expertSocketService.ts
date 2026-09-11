@@ -161,10 +161,6 @@ export function isExpertSocketConnected(): boolean {
   return Boolean(socket?.connected);
 }
 
-export function getConnectedExpertSocketId(): string | null {
-  return connectedExpertId;
-}
-
 function connectExpertSocketWithUrl({
   expertId,
   baseUrl,

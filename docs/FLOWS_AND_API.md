@@ -69,6 +69,8 @@ Panel pages (except login) use: **Auth guard → Profile + Panel data + Socket p
 | `GET` | `/experts/me/requests` | All assigned requests (history, mappers) |
 | `GET` | `/experts/me/requests?status=accepted` | Accepted work (queue / drafts) |
 | `GET` | `/experts/me/reviews` | Profile reviews + cert/report context |
+| `GET` | `/experts/me/inbox` | Replay unshown offer / deadline notifications after login or reconnect |
+| `PATCH` | `/experts/me/inbox/:inboxItemId` | Mark inbox item `isShown` (toast displayed) or `isRead` (request opened) |
 | `POST` | `/experts/offers/:offerId/accept` | Accept an offer → start evaluation |
 | `POST` | `/experts/offers/:offerId/skip` | Skip / reassign offer |
 | `POST` | `/experts/reports` | Create draft or submitted report |
@@ -198,6 +200,7 @@ Confirm → disconnect Socket.IO → `DELETE /api/expert/session` → clear prof
 - Connect with `{ expertId }` after profile is ready.
 - URL: `GET /api/expert/socket-config` (server `SOCKET_URL` or `API_BASE_URL`).
 - REST remains source of truth; socket triggers refresh.
+- Missed events replay from `GET /experts/me/inbox`; the panel patches `isShown` after the toast and `isRead` when the request is opened.
 
 ---
 
@@ -262,6 +265,8 @@ PUT  /api/expert/experts/me/availability → PUT /experts/me/availability
 GET  /api/expert/experts/me/offers     →  GET  /experts/me/offers
 GET  /api/expert/experts/me/requests   →  GET  /experts/me/requests
 GET  /api/expert/experts/me/reviews    →  GET  /experts/me/reviews
+GET  /api/expert/experts/me/inbox      →  GET  /experts/me/inbox
+PATCH /api/expert/experts/me/inbox/:id →  PATCH /experts/me/inbox/:id
 POST /api/expert/experts/offers/:id/accept → POST /experts/offers/:id/accept
 POST /api/expert/experts/offers/:id/skip   → POST /experts/offers/:id/skip
 POST /api/expert/experts/reports       →  POST /experts/reports

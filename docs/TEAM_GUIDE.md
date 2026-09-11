@@ -77,7 +77,7 @@ Login  →  Queue (new offers + in-progress)
 4. **Evaluate** — form autosaves as a **draft report**. Submit finalizes (`isDraft: false`).
 5. **Drafts** — accepted work still inside the deadline, not submitted.
 6. **History** — past requests; open report modal or download PDF.
-7. **Realtime** — Socket.IO `request.offered` / `withdrawn` / `accepted` refreshes the queue. If the socket is down, offers poll every 30s.
+7. **Realtime** — Socket.IO refreshes the queue; if the socket is down, offers poll every 30s. Unshown inbox items replay as toasts after login.
 
 Auth cookie: `{APP_SLUG}_jwt` (local proxy) or session JWT `{APP_SLUG}.expert.jwt` (static `dist`). Browser calls `API_BASE_URL` directly when that env is set.
 

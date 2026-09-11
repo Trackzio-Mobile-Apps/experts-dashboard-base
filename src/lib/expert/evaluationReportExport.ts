@@ -1,10 +1,17 @@
-import { appEnv, themeConfig } from "@/config";
+import { themeConfig } from "@/config";
+import { getExpertMediaFetchInit } from "@/lib/expert/apiClient";
 import {
   authenticityAssessmentTheme,
   authenticitySummaryTheme,
   authenticityTone,
   EVALUATION_REPORT_TOKENS,
 } from "@/lib/expert/evaluationReportTokens";
+import {
+  fetchReportMediaAsDataUrl,
+  inlineImagesInRoot,
+  prefetchReportMediaDataUrls,
+  reportMediaFetchUrl,
+} from "@/lib/expert/evaluationReportMedia";
 import {
   evaluationReportFontLinkHtml,
   evaluationReportLayoutCss,
@@ -32,6 +39,7 @@ import {
   type EvaluationReportSection,
 } from "@/lib/expert/evaluationReportView";
 import type { RequestMediaItem } from "@/lib/expert/types";
+import { isUnusableMediaUrl } from "@/lib/expert/mediaUrls";
 
 function escapeHtml(value: string): string {
   return value
@@ -42,7 +50,6 @@ function escapeHtml(value: string): string {
 }
 
 const REPORT_LOGO_PATH = themeConfig.brand.logoSrc;
-const REPORT_MEDIA_PROXY_PATH = "/api/expert/media";
 const t = EVALUATION_REPORT_TOKENS;
 const c = t.colors;
 const p = t.pdf;
@@ -78,61 +85,24 @@ async function ensureReportFontsLoaded(doc: Document = document): Promise<void> 
   });
 }
 
-function reportMediaFetchUrl(url: string): string {
-  const trimmed = url.trim();
-  if (!trimmed) return trimmed;
-  if (trimmed.startsWith("/")) return trimmed;
-  if (trimmed.startsWith("data:")) return trimmed;
-  if (appEnv.apiBaseUrl) return trimmed;
-  return `${REPORT_MEDIA_PROXY_PATH}?url=${encodeURIComponent(trimmed)}`;
-}
-
-async function urlToDataUrl(url: string): Promise<string | null> {
-  const fetchUrl = reportMediaFetchUrl(url);
-  if (!fetchUrl) return null;
-
-  try {
-    const response = await fetch(fetchUrl);
-    if (!response.ok) return null;
-    const blob = await response.blob();
-    return await new Promise<string | null>((resolve) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        resolve(typeof reader.result === "string" ? reader.result : null);
-      };
-      reader.onerror = () => resolve(null);
-      reader.readAsDataURL(blob);
-    });
-  } catch {
-    return null;
-  }
-}
-
 async function inlineReportMediaUrls(
   report: EvaluationReportDisplay,
 ): Promise<(url: string) => string> {
-  const cache = new Map<string, string>();
   const urls = new Set<string>();
 
-  if (report.expert?.profilePicture) {
+  if (report.expert?.profilePicture && !isUnusableMediaUrl(report.expert.profilePicture)) {
     urls.add(report.expert.profilePicture);
   }
   for (const item of reportGalleryMedia(report.media)) {
-    urls.add(item.src);
+    if (!isUnusableMediaUrl(item.src)) urls.add(item.src);
   }
   for (const item of report.media) {
-    if (item.kind === "video" && item.poster?.trim()) {
+    if (item.kind === "video" && item.poster?.trim() && !isUnusableMediaUrl(item.poster)) {
       urls.add(item.poster);
     }
   }
 
-  await Promise.all(
-    [...urls].map(async (url) => {
-      const dataUrl = await urlToDataUrl(url);
-      if (dataUrl) cache.set(url, dataUrl);
-    }),
-  );
-
+  const cache = await prefetchReportMediaDataUrls(urls);
   return (url: string) => cache.get(url.trim()) ?? reportMediaFetchUrl(url);
 }
 
@@ -201,7 +171,7 @@ function reportExpertHtml(
   }
 
   const avatar = expert.profilePicture
-    ? `<img src="${escapeHtml(resolveMediaUrl(expert.profilePicture))}" alt="${escapeHtml(expert.fullName)}" class="eval-report-hero-avatar" crossorigin="anonymous" />`
+    ? `<img src="${escapeHtml(resolveMediaUrl(expert.profilePicture))}" alt="${escapeHtml(expert.fullName)}" class="eval-report-hero-avatar" />`
     : `<div class="eval-report-hero-avatar">${escapeHtml(expert.initials)}</div>`;
 
   const chips = expert.expertiseTags
@@ -252,7 +222,7 @@ function coinGalleryItemHtml(
     variant === "v1" ? t.hero.v1CoinImageOverlapPx : t.hero.coinImageOverlapPx;
   const marginLeft = index === 0 ? 0 : -overlap;
   const content = src
-    ? `<img src="${escapeHtml(resolveMediaUrl(src))}" alt="${escapeHtml(item.alt)}" loading="eager" crossorigin="anonymous" />`
+    ? `<img src="${escapeHtml(resolveMediaUrl(src))}" alt="${escapeHtml(item.alt)}" loading="eager" />`
     : `<span class="eval-report-coin-gallery-fallback">Video</span>`;
   const videoBadge = isVideo
     ? `<span class="eval-report-coin-video-badge">◉</span>`
@@ -412,7 +382,7 @@ function reportHeaderHtml(
   return `
     <header class="eval-report-header">
       <div class="eval-report-header-brand">
-        <img src="${escapeHtml(logoSrc)}" alt="${escapeHtml(EVALUATION_REPORT_BRAND)}" class="eval-report-header-logo" crossorigin="anonymous" />
+        <img src="${escapeHtml(logoSrc)}" alt="${escapeHtml(EVALUATION_REPORT_BRAND)}" class="eval-report-header-logo" />
         <div>
           <p class="eval-report-brand-name">${escapeHtml(EVALUATION_REPORT_BRAND)}</p>
           <p class="eval-report-brand-subtitle">${escapeHtml(EVALUATION_REPORT_SUBTITLE)}</p>
@@ -556,23 +526,8 @@ export function buildEvaluationReportPrintHtml(
 }
 
 async function loadReportLogoDataUrl(): Promise<string | null> {
-  try {
-    const response = await fetch(REPORT_LOGO_PATH);
-    if (!response.ok) return null;
-
-    const blob = await response.blob();
-    return await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        if (typeof reader.result === "string") resolve(reader.result);
-        else reject(new Error("Unable to read logo."));
-      };
-      reader.onerror = () => reject(reader.error);
-      reader.readAsDataURL(blob);
-    });
-  } catch {
-    return null;
-  }
+  const result = await fetchReportMediaAsDataUrl(REPORT_LOGO_PATH);
+  return result.dataUrl;
 }
 
 function mountReportExportFrame(html: string): {
@@ -634,25 +589,7 @@ function syncExportFrameHeight(iframe: HTMLIFrameElement): void {
   iframe.style.height = `${height + 64}px`;
 }
 
-async function waitForElementImages(root: ParentNode): Promise<void> {
-  const images = Array.from(root.querySelectorAll("img"));
-  await Promise.all(
-    images.map(
-      (image) =>
-        new Promise<void>((resolve) => {
-          if (image.complete) {
-            resolve();
-            return;
-          }
-          image.onload = () => resolve();
-          image.onerror = () => resolve();
-        }),
-    ),
-  );
-}
-
 async function waitForFrameLayout(frameWindow: Window): Promise<void> {
-  await waitForElementImages(frameWindow.document);
   await ensureReportFontsLoaded(frameWindow.document);
   await new Promise<void>((resolve) => {
     frameWindow.requestAnimationFrame(() => {
@@ -679,38 +616,6 @@ function buildResolveAssetUrl(
     }
     return resolveMediaUrl(url);
   };
-}
-
-const TRANSPARENT_PIXEL_DATA_URL =
-  "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
-
-async function inlineImagesInRoot(
-  root: ParentNode,
-  resolveMediaUrl: (url: string) => string,
-): Promise<void> {
-  const images = Array.from(root.querySelectorAll("img"));
-  await Promise.all(
-    images.map(async (image) => {
-      const src = image.getAttribute("src");
-      if (!src || src.startsWith("data:")) return;
-
-      let resolved = resolveMediaUrl(src);
-      if (!resolved.startsWith("data:")) {
-        const fetched = await urlToDataUrl(src);
-        if (fetched) resolved = fetched;
-      }
-
-      if (resolved.startsWith("data:")) {
-        image.setAttribute("src", resolved);
-        image.removeAttribute("crossorigin");
-        return;
-      }
-
-      image.removeAttribute("crossorigin");
-      image.setAttribute("src", TRANSPARENT_PIXEL_DATA_URL);
-    }),
-  );
-  await waitForElementImages(root);
 }
 
 function measureReportPageCaptureSize(page?: HTMLElement): {
@@ -891,24 +796,38 @@ async function renderReportPageCanvas(
 
   view?.scrollTo(0, 0);
 
-  const canvas = await toCanvas(page, {
-    width,
-    height,
-    canvasWidth: width * scale,
-    canvasHeight: height * scale,
-    pixelRatio: 1,
-    skipAutoScale: true,
-    backgroundColor: c.canvas,
-    cacheBust: true,
-    skipFonts: true,
-    style: {
-      boxShadow: "none",
-      borderRadius: "0",
-      margin: "0",
-    },
-    filter: (node) => !(node instanceof HTMLIFrameElement),
-    onImageErrorHandler: () => undefined,
-  });
+  const canvas = await Promise.race([
+    toCanvas(page, {
+      width,
+      height,
+      canvasWidth: width * scale,
+      canvasHeight: height * scale,
+      pixelRatio: 1,
+      skipAutoScale: true,
+      backgroundColor: c.canvas,
+      cacheBust: false,
+      skipFonts: true,
+      style: {
+        boxShadow: "none",
+        borderRadius: "0",
+        margin: "0",
+      },
+      filter: (node) => !(node instanceof HTMLIFrameElement),
+      fetchRequestInit: getExpertMediaFetchInit(),
+      includeQueryParams: true,
+      onImageErrorHandler: (error) => {
+        console.warn(
+          "[evaluation-report-pdf] html-to-image failed to embed an image",
+          error instanceof Error ? error.message : error,
+        );
+      },
+    }),
+    new Promise<never>((_, reject) => {
+      window.setTimeout(() => {
+        reject(new Error("Report page capture timed out."));
+      }, 20_000);
+    }),
+  ]);
 
   if (canvas.width === 0 || canvas.height === 0) {
     throw new Error("Report page capture produced an empty canvas.");
@@ -1082,13 +1001,7 @@ async function preparePreviewPagesForCapture(
   previewPages: HTMLElement[],
 ): Promise<() => void> {
   await ensureReportFontsLoaded(document);
-  for (const page of previewPages) {
-    await waitForElementImages(page);
-  }
   await waitForPaint(window);
-  await new Promise<void>((resolve) => {
-    window.setTimeout(resolve, 150);
-  });
   return markReportPagesForCapture(previewPages);
 }
 

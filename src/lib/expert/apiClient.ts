@@ -53,6 +53,24 @@ function readStoredJwt(): string {
   return sessionStorage.getItem(STORAGE_KEYS.jwt)?.trim() ?? "";
 }
 
+/**
+ * Auth for same-origin `/api/expert/media` (and similar binary fetches).
+ * Matches `apiClient` credentials/JWT behavior without forcing JSON Content-Type.
+ */
+export function getExpertMediaFetchInit(signal?: AbortSignal): RequestInit {
+  const headers: Record<string, string> = {};
+  const token = readStoredJwt();
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  return {
+    method: "GET",
+    credentials: usesDirectApi() ? "omit" : "include",
+    cache: "no-store",
+    headers,
+    ...(signal ? { signal } : {}),
+  };
+}
+
 function writeStoredJwt(token: string): void {
   if (typeof window === "undefined") return;
   sessionStorage.setItem(STORAGE_KEYS.jwt, token);

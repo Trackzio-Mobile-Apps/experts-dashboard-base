@@ -8,6 +8,7 @@ import { ExpertScrollIllustration } from "@/components/expert/ExpertScrollIllust
 import { HISTORY_PAGE_SIZE } from "@/lib/expert/constants";
 import {
   buildExpertHistoryHref,
+  formatHistoryMonthHint,
   formatInr,
   type HistoryPeriodFilter,
 } from "@/lib/expert/format";
@@ -33,7 +34,8 @@ type ExpertHistoryPageBodyProps = {
 
 const PERIOD_TABS = [
   { id: "all" as const, label: "All time" },
-  { id: "month" as const, label: "This month" },
+  { id: "thisMonth" as const, label: "This month" },
+  { id: "month" as const, label: "Last 30 days" },
   { id: "quarter" as const, label: "Last 3 months" },
 ] as const;
 
@@ -87,7 +89,7 @@ export function ExpertHistoryPageBody({
         </div>
 
         {isLoading ? (
-          <ExpertStatCardsSkeleton count={3} columns={3} compact />
+          <ExpertStatCardsSkeleton count={3} compact />
         ) : (
           <div className="flex flex-col gap-6 sm:flex-row sm:flex-wrap">
             <SummaryCard
@@ -96,17 +98,14 @@ export function ExpertHistoryPageBody({
               hint="Since Jan 2026"
             />
             <SummaryCard
+              label="Completed this month"
+              value={String(summary.completedThisMonth)}
+              hint={formatHistoryMonthHint()}
+            />
+            <SummaryCard
               label="Avg turnaround"
               value={summary.avgTurnaround}
               hint="Last 30 days"
-            />
-            <SummaryCard
-              label="Total earned"
-              value={
-                summary.totalEarnedInr == null
-                  ? "—"
-                  : formatHistoryValue(summary.totalEarnedInr)
-              }
             />
           </div>
         )}

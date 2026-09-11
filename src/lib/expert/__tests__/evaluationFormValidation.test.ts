@@ -1,4 +1,7 @@
-import { createInitialEvaluationFormState } from "@/lib/expert/evaluationForm";
+import {
+  createInitialEvaluationFormState,
+  formatEstimatedValueDisplay,
+} from "@/lib/expert/evaluationForm";
 import {
   isEvaluationFormValid,
   validateEvaluationField,
@@ -49,5 +52,29 @@ describe("evaluationFormValidation", () => {
     expect(validateEvaluationField("authenticity", "Fake", {})).toBeNull();
     expect(validateEvaluationField("authenticity", "Authentic", {})).toBeNull();
     expect(validateEvaluationField("authenticity", "Doubtful", {})).toBeNull();
+  });
+});
+
+describe("formatEstimatedValueDisplay", () => {
+  it("prefixes the currency code onto the free-text range", () => {
+    expect(formatEstimatedValueDisplay("5000 - 15000", "INR")).toBe(
+      "INR 5000 - 15000",
+    );
+    expect(formatEstimatedValueDisplay("5000 - 15000", "USD")).toBe(
+      "USD 5000 - 15000",
+    );
+  });
+
+  it("does not duplicate currency when the range already includes it", () => {
+    expect(formatEstimatedValueDisplay("INR 5000 - 15000", "INR")).toBe(
+      "INR 5000 - 15000",
+    );
+    expect(formatEstimatedValueDisplay("₹5,000 – ₹15,000", "INR")).toBe(
+      "₹5,000 – ₹15,000",
+    );
+  });
+
+  it("returns em dash when the range is empty", () => {
+    expect(formatEstimatedValueDisplay("", "INR")).toBe("—");
   });
 });

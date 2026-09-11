@@ -65,7 +65,9 @@ function ProfileField({
       <dt className="text-xs font-semibold uppercase tracking-[0.1em] text-text-muted">
         {label}
       </dt>
-      <dd className="mt-1 text-sm text-text">{children}</dd>
+      <dd className="mt-1 break-words text-sm text-text [overflow-wrap:anywhere]">
+        {children}
+      </dd>
     </div>
   );
 }
@@ -245,7 +247,7 @@ export function ExpertProfileScreen() {
         </p>
       </header>
 
-      <section className="rounded-2xl border border-border/70 bg-surface p-6 shadow-sm sm:p-8">
+      <section className="overflow-hidden rounded-2xl border border-border/70 bg-surface p-6 shadow-sm sm:p-8">
         <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
           <ExpertAvatar
             profilePicture={profile.profilePicture}
@@ -278,7 +280,7 @@ export function ExpertProfileScreen() {
                 ) : null}
               </p>
               {tagline ? (
-                <p className="mt-2 text-sm leading-relaxed text-text-muted">
+                <p className="mt-2 break-words text-sm leading-relaxed text-text-muted [overflow-wrap:anywhere]">
                   {tagline}
                 </p>
               ) : null}
