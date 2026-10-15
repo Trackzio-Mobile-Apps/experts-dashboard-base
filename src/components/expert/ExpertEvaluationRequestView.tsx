@@ -228,7 +228,7 @@ function DeadlineBadge({
           {overdue
             ? "Overdue"
             : remaining === "—"
-              ? `${days} ${days === 1 ? "day" : "days"}`
+              ? `${Math.max(0, days)}d`
               : remaining}
         </p>
         <p className="mt-0.5 text-xs text-text-muted">
