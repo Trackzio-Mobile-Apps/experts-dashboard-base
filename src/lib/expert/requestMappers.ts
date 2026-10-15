@@ -406,10 +406,9 @@ export function mapOfferToQueueItem(
   nowMs = Date.now(),
 ): QueueListItem {
   const request = offer.request;
-  const { deadlineAt, deadlineExpired } = resolveOfferQueueDeadline(
-    offer,
-    nowMs,
-  );
+  const { deadlineExpired } = resolveOfferQueueDeadline(offer, nowMs);
+  // Same timestamp the request screen shows, so the queue `Nd Nh` label matches.
+  const deadlineAt = normalizeIsoDate(request.deadlineAt);
   const status: QueueItemStatus = "pending_review";
   return {
     id: normalizeMongoId(request._id),

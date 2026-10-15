@@ -283,11 +283,10 @@ export function formatQueueRequestIdLabel(displayId: string): string {
   return `REQ-ID ${upper}`;
 }
 
-/** Whole-day deadline label for queue cards, e.g. `3 days`. */
+/** Fallback when a queue row has no timestamp. Compact days, same style as the request screen. */
 export function formatQueueDeadlineDays(deadlineDays: number): string {
-  const days = Math.max(0, deadlineDays);
-  if (days === 0) return "Today";
-  return `${days} ${days === 1 ? "day" : "days"}`;
+  const days = Math.max(0, Math.floor(deadlineDays));
+  return `${days}d`;
 }
 
 /** Queue card deadline — `Expired` when past, otherwise the same `Nd Nh` label as the request page. */

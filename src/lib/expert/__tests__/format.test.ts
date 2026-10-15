@@ -117,21 +117,24 @@ describe("resolveDisplayId via mapOfferToQueueItem", () => {
     );
   });
 
-  it("uses the sooner of request deadline and offer expiry", () => {
+  it("shows the request deadline on the queue, matching the request screen", () => {
     const offer = {
       _id: "offer1",
-      expiresAt: "2026-08-05T12:00:00.000Z",
+      expiresAt: "2026-08-07T12:00:00.000Z",
       request: {
         _id: "req1",
         displayId: "16",
         status: "offered",
-        deadlineAt: "2026-08-10T12:00:00.000Z",
+        deadlineAt: "2026-08-08T17:00:00.000Z",
       },
     } as unknown as BackendOffer;
 
     const nowMs = Date.parse("2026-08-06T12:00:00.000Z");
     const item = mapOfferToQueueItem(offer);
-    expect(item.deadlineAt).toBe("2026-08-05T12:00:00.000Z");
-    expect(isDeadlineExceeded(item.deadlineAt, nowMs)).toBe(true);
+    expect(item.deadlineAt).toBe("2026-08-08T17:00:00.000Z");
+    expect(
+      formatQueueDeadlineLabel(item.deadlineAt, item.deadlineDays, nowMs),
+    ).toBe("2d 5h");
+    expect(formatDeadlineRemaining(item.deadlineAt, nowMs)).toBe("2d 5h");
   });
 });
