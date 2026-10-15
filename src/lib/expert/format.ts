@@ -128,28 +128,27 @@ export function daysUntil(isoDate: unknown): number {
   return Math.max(0, Math.round((endUtc - startUtc) / MS_PER_DAY));
 }
 
-/** Precise remaining label driven by actual `deadlineAt` (hours + days). */
-export function formatDeadlineRemaining(isoDate: unknown): string {
+/**
+ * Precise remaining label from `deadlineAt`, always in compact days/hours.
+ * Examples: `2d 5h`, `5h`, `2d`. Under one hour shows `1h`.
+ */
+export function formatDeadlineRemaining(
+  isoDate: unknown,
+  nowMs = Date.now(),
+): string {
   const target = parseDate(isoDate);
   if (!target) return "—";
 
-  const diffMs = target.getTime() - Date.now();
+  const diffMs = target.getTime() - nowMs;
   if (diffMs <= 0) return "Overdue";
 
-  const totalHours = Math.max(1, Math.ceil(diffMs / MS_PER_HOUR));
-  if (totalHours < 24) {
-    return totalHours === 1 ? "1 hour" : `${totalHours} hours`;
-  }
-
   const days = Math.floor(diffMs / MS_PER_DAY);
-  // Edge case: 23h–24h remaining ceil to 24 hours but floor-days is still 0.
-  if (days <= 0) return "1 day";
+  const hours = Math.floor((diffMs % MS_PER_DAY) / MS_PER_HOUR);
 
-  const remHours = Math.floor((diffMs - days * MS_PER_DAY) / MS_PER_HOUR);
-  if (remHours <= 0) {
-    return `${days} ${days === 1 ? "day" : "days"}`;
-  }
-  return `${days}d ${remHours}h`;
+  if (days <= 0 && hours <= 0) return "1h";
+  if (days <= 0) return `${hours}h`;
+  if (hours <= 0) return `${days}d`;
+  return `${days}d ${hours}h`;
 }
 
 /** True when `deadlineAt` is in the past (submission no longer allowed). */
@@ -291,13 +290,15 @@ export function formatQueueDeadlineDays(deadlineDays: number): string {
   return `${days} ${days === 1 ? "day" : "days"}`;
 }
 
-/** Queue card deadline — `Expired` when past, otherwise day count. */
+/** Queue card deadline — `Expired` when past, otherwise the same `Nd Nh` label as the request page. */
 export function formatQueueDeadlineLabel(
   deadlineAt: string | null | undefined,
   deadlineDays: number,
   nowMs = Date.now(),
 ): string {
   if (isDeadlineExceeded(deadlineAt, nowMs)) return "Expired";
+  const remaining = formatDeadlineRemaining(deadlineAt, nowMs);
+  if (remaining !== "—" && remaining !== "Overdue") return remaining;
   return formatQueueDeadlineDays(deadlineDays);
 }
 

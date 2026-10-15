@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  formatDeadlineRemaining,
   formatQueueDeadlineLabel,
   formatQueueRequestIdLabel,
   isDeadlineExceeded,
@@ -34,11 +35,35 @@ describe("formatQueueDeadlineLabel", () => {
     ).toBe("Expired");
   });
 
-  it("shows day count when deadlineAt is still active", () => {
+  it("shows compact days when the deadline lands on an exact day boundary", () => {
     const nowMs = Date.parse("2026-08-06T12:00:00.000Z");
     expect(
       formatQueueDeadlineLabel("2026-08-08T12:00:00.000Z", 2, nowMs),
-    ).toBe("2 days");
+    ).toBe("2d");
+  });
+
+  it("shows days and hours from the actual deadline, matching the request page", () => {
+    const nowMs = Date.parse("2026-08-06T12:00:00.000Z");
+    const deadlineAt = "2026-08-08T17:00:00.000Z";
+    expect(formatQueueDeadlineLabel(deadlineAt, 2, nowMs)).toBe("2d 5h");
+    expect(formatDeadlineRemaining(deadlineAt, nowMs)).toBe("2d 5h");
+  });
+
+  it("shows hours only when less than a day remains", () => {
+    const nowMs = Date.parse("2026-08-06T12:00:00.000Z");
+    expect(
+      formatQueueDeadlineLabel("2026-08-06T17:00:00.000Z", 1, nowMs),
+    ).toBe("5h");
+    expect(
+      formatDeadlineRemaining("2026-08-06T17:30:00.000Z", nowMs),
+    ).toBe("5h");
+  });
+
+  it("shows 1h when under an hour remains", () => {
+    const nowMs = Date.parse("2026-08-06T12:00:00.000Z");
+    expect(
+      formatDeadlineRemaining("2026-08-06T12:20:00.000Z", nowMs),
+    ).toBe("1h");
   });
 });
 
